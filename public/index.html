@@ -4,45 +4,107 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
   <title>BB10 / PlayBook App Manager</title>
   <link rel="icon" href="images/playbook.png">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
   <main class="shell">
     <header class="hero">
-      <img class="logo" src="images/playbook.png" alt="">
-      <div>
-        <h1>BB10 / PlayBook App Manager</h1>
-        <p class="sub">Web edition for Linux &mdash; install, launch and manage apps over Wi-Fi or USB.</p>
+      <div class="brand">
+        <div class="logo-wrap">
+          <img class="logo" src="images/playbook.png" alt="">
+        </div>
+        <div>
+          <span class="eyebrow"><span class="dot"></span>Local web edition</span>
+          <h1>BB10 <span class="slash">/</span> PlayBook <span class="grad">App Manager</span></h1>
+          <p class="sub">Install, launch and manage apps over Wi-Fi or USB &mdash; straight from your browser.</p>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <span class="pill"><span class="dot"></span>Runs locally</span>
+        <span class="pill">No npm dependencies</span>
       </div>
     </header>
 
-    <section class="card">
-      <h2>Devices</h2>
+    <section class="card devices-card">
+      <div class="card-head">
+        <div>
+          <h2>Your devices</h2>
+          <p class="card-sub">Add a hostname or IP, then open a device to manage its apps.</p>
+        </div>
+        <span id="device-count" class="count" aria-label="0 devices">0</span>
+      </div>
+
       <form id="device-form">
-        <label for="hosts">Device hostnames / IPs</label>
-        <textarea id="hosts" rows="2" placeholder="192.168.1.42, 169.254.0.1" autocomplete="off" spellcheck="false"></textarea>
+        <label for="hosts">Device addresses</label>
+        <textarea id="hosts" rows="2" placeholder="192.168.1.42, 169.254.0.1" autocomplete="off"
+          spellcheck="false"></textarea>
         <p class="hint">Separate multiple devices with commas or new lines. Find the IPv4 address under
           Settings &rarr; About &rarr; Network on the device.</p>
         <div class="actions">
-          <button type="submit" class="primary" id="save">Save devices</button>
+          <button type="submit" class="primary" id="save">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+              <path d="M17 21v-8H7v8M7 3v5h8"></path>
+            </svg>
+            Save devices
+          </button>
           <span id="saved" class="saved" role="status" aria-live="polite"></span>
         </div>
       </form>
+
+      <div class="divider"></div>
       <ul id="device-list" class="devices"></ul>
       <p id="empty" class="empty">No devices yet. Add a hostname or IP above.</p>
     </section>
 
-    <section class="card notice">
-      <h2>Before you start</h2>
-      <ol>
-        <li>Enable <strong>Development Mode</strong> in the device's Security settings.</li>
-        <li>The device web service uses HTTPS with a self-signed certificate. The local proxy accepts it for you.</li>
-        <li>An app that is incompatible with BB10 / PlayBook OS will not run regardless of how it was installed.</li>
-      </ol>
-    </section>
+    <div class="grid">
+      <section class="card notice">
+        <h2>Before you start</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <strong>Enable Development Mode</strong>
+              <p>Turn it on in the device's Security settings.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <strong>Accept the certificate</strong>
+              <p>The device serves HTTPS with a self-signed certificate. The local proxy accepts it for you.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <strong>Match the OS</strong>
+              <p>Apps that are incompatible with BB10 / PlayBook OS will not run, however they were installed.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card tips">
+        <h2>Connection tips</h2>
+        <ul>
+          <li>Use the device's Wi-Fi IPv4 address for wireless access.</li>
+          <li>USB connections usually appear as <code>169.254.x.x</code>.</li>
+          <li>Keep this Node process running while you manage the device.</li>
+        </ul>
+      </section>
+    </div>
 
     <footer>
       Ported from <a href="https://github.com/zhetengbiji/bb10-app-manager" target="_blank"

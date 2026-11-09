@@ -20,7 +20,31 @@ function da (b) {
     b.previousSibling.disabled = !b.checked
 }
 function L (b) {
-    document.documentElement.innerHTML = b
+    b = String(b);
+    var hasDocumentMarkup = /<(?:head|body|html)[\s>]/i.test(b);
+    if (hasDocumentMarkup) {
+        if (!/<meta[^>]+name=["']?viewport/i.test(b)) {
+            b = b.replace(/<head[^>]*>/i, function (tag) {
+                return tag + '<meta name="viewport" content="width=device-width, initial-scale=1">';
+            });
+        }
+    } else {
+        b = '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BB10 / PlayBook App Manager</title><link rel="icon" href="images/playbook.png"></head><body class="state-page"><div class="state-card">' + b + '</div></body>';
+    }
+    document.documentElement.innerHTML = b;
+    document.documentElement.classList.add('pb-ui');
+    var head = document.head;
+    if (!head) {
+        head = document.createElement('head');
+        document.documentElement.insertBefore(head, document.documentElement.firstChild);
+    }
+    if (!head.querySelector('link[data-pb-style]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'device.css';
+        link.setAttribute('data-pb-style', '');
+        head.appendChild(link);
+    }
 }
 function ea () {
     L("<h2>" + (fa(!0) ? "Logged out" : "Unable to log out") + '</h2><button onclick="ga()">Log in again</button>')
@@ -66,7 +90,7 @@ async function jaAsync () {
                 L("Unsupported Algorithm: " + n);
                 break
             }
-            L("<head><style>body,input{font:16px/1.5 verdana}</style></head><body><h2>Log in to your BB10 / PlayBook device" + (e ? " (" + (e + 1) + " of " + (e + a) + ")" : "") + "</h2>Hostname: " + DEVICE_HOST + '<br/><form onsubmit="return la()">Password: <input type=password id=passwd size=15 required autocomplete=off><br><label><input type=checkbox id=save>Auto Login</label><br><br><input type=submit id=submit value="Log in"> </form><br><a href="index.html">&larr; Devices</a></body>');
+            L('<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in - BB10 / PlayBook App Manager</title><link rel="icon" href="images/playbook.png"></head><body class="auth-page"><main class="auth-card"><div class="auth-brand"><span class="auth-logo"><img src="images/playbook.png" alt=""></span><div><span class="eyebrow">BB10 / PlayBook</span><h1>Sign in to your device</h1></div></div><p class="auth-host">Connecting to <strong>' + DEVICE_HOST + '</strong></p>' + (e ? '<p class="auth-warning">Incorrect password. Attempt ' + (e + 1) + ' of ' + (e + a) + '.</p>' : '') + '<form onsubmit="return la()" class="auth-form"><label class="field"><span>Password</span><input type="password" id="passwd" required autocomplete="off" placeholder="Enter device password"></label><label class="check"><input type="checkbox" id="save"><span>Remember this device &mdash; auto login</span></label><input type="submit" id="submit" value="Log in"></form><a class="back-link" href="index.html">&larr; Back to devices</a></main></body>');
             !e && PB_STORAGE.passwd && (J("save").checked = !0,
                 la());
             break;

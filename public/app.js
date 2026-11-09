@@ -4,12 +4,25 @@
   var STORAGE_KEY = 'bb10:web:hosts'
   var LEGACY_KEY = 'hosts'
 
+  var ICONS = {
+    device: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"></rect><path d="M10.5 18h3"></path></svg>',
+    arrow: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>'
+  }
+
   var form = document.getElementById('device-form')
   var input = document.getElementById('hosts')
   var list = document.getElementById('device-list')
   var empty = document.getElementById('empty')
   var saved = document.getElementById('saved')
+  var deviceCount = document.getElementById('device-count')
   var savedTimer
+
+  function icon (name) {
+    var wrap = document.createElement('span')
+    wrap.innerHTML = ICONS[name]
+    return wrap.firstElementChild
+  }
 
   function normalizeHost (value) {
     var host = String(value || '').trim()
@@ -60,27 +73,58 @@
     location.href = 'device.html?host=' + encodeURIComponent(host)
   }
 
+  function updateCount (total) {
+    deviceCount.textContent = String(total)
+    deviceCount.setAttribute('aria-label', total + (total === 1 ? ' device' : ' devices'))
+  }
+
   function render (hosts) {
     list.textContent = ''
     empty.hidden = hosts.length > 0
+    updateCount(hosts.length)
 
     hosts.forEach(function (host) {
       var row = document.createElement('li')
+      row.className = 'device'
+
+      var badge = document.createElement('div')
+      badge.className = 'device-badge'
+      badge.appendChild(icon('device'))
+
+      var info = document.createElement('div')
+      info.className = 'device-info'
 
       var text = document.createElement('div')
       text.className = 'device-host'
       text.textContent = host
+      text.title = host
+
+      var meta = document.createElement('div')
+      meta.className = 'device-meta'
+      var dot = document.createElement('span')
+      dot.className = 'dot'
+      meta.appendChild(dot)
+      meta.appendChild(document.createTextNode('BB10 / PlayBook'))
+
+      info.appendChild(text)
+      info.appendChild(meta)
+
+      var actions = document.createElement('div')
+      actions.className = 'device-actions'
 
       var open = document.createElement('button')
       open.type = 'button'
       open.className = 'primary small'
-      open.textContent = 'Open'
+      open.appendChild(document.createTextNode('Open'))
+      open.appendChild(icon('arrow'))
       open.addEventListener('click', function () { openDevice(host) })
 
       var remove = document.createElement('button')
       remove.type = 'button'
-      remove.className = 'ghost small'
-      remove.textContent = 'Remove'
+      remove.className = 'icon-btn'
+      remove.title = 'Remove device'
+      remove.setAttribute('aria-label', 'Remove ' + host)
+      remove.appendChild(icon('close'))
       remove.addEventListener('click', function () {
         var next = hosts.filter(function (item) { return item !== host })
         saveHosts(next)
@@ -88,9 +132,12 @@
         render(next)
       })
 
-      row.appendChild(text)
-      row.appendChild(open)
-      row.appendChild(remove)
+      actions.appendChild(open)
+      actions.appendChild(remove)
+
+      row.appendChild(badge)
+      row.appendChild(info)
+      row.appendChild(actions)
       list.appendChild(row)
     })
   }
