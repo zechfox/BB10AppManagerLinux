@@ -1,0 +1,15 @@
+{
+  "name": "bb10-app-manager-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web/Linux port of the BB10 / PlayBook App Manager",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "ISC"
+}

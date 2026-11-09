@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connecting &mdash; BB10 / PlayBook App Manager</title>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <main class="shell narrow">
+    <section class="card">
+      <h2 id="status">Connecting to device&hellip;</h2>
+      <p id="detail" class="hint"></p>
+      <p><a href="index.html">&larr; Back to devices</a></p>
+    </section>
+  </main>
+  <script>
+    (function () {
+      var host = (new URLSearchParams(location.search).get('host') || '').trim()
+      window.DEVICE_HOST = host
+
+      var status = document.getElementById('status')
+      var detail = document.getElementById('detail')
+
+      if (!host) {
+        status.textContent = 'No device selected'
+        detail.textContent = 'Open a device from the device list.'
+        return
+      }
+
+      detail.textContent = host + ' \u2014 logging in and loading installed apps\u2026'
+
+      var script = document.createElement('script')
+      script.src = 'pb-apps.js'
+      script.onerror = function () {
+        status.textContent = 'Could not load pb-apps.js'
+        detail.textContent = 'Make sure the local server is still running.'
+      }
+      document.body.appendChild(script)
+    })()
+  </script>
+</body>
+
+</html>

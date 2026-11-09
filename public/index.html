@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BB10 / PlayBook App Manager</title>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <main class="shell">
+    <header class="hero">
+      <img class="logo" src="images/playbook.png" alt="">
+      <div>
+        <h1>BB10 / PlayBook App Manager</h1>
+        <p class="sub">Web edition for Linux &mdash; install, launch and manage apps over Wi-Fi or USB.</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Devices</h2>
+      <form id="device-form">
+        <label for="hosts">Device hostnames / IPs</label>
+        <textarea id="hosts" rows="2" placeholder="192.168.1.42, 169.254.0.1" autocomplete="off" spellcheck="false"></textarea>
+        <p class="hint">Separate multiple devices with commas or new lines. Find the IPv4 address under
+          Settings &rarr; About &rarr; Network on the device.</p>
+        <div class="actions">
+          <button type="submit" class="primary" id="save">Save devices</button>
+          <span id="saved" class="saved" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <ul id="device-list" class="devices"></ul>
+      <p id="empty" class="empty">No devices yet. Add a hostname or IP above.</p>
+    </section>
+
+    <section class="card notice">
+      <h2>Before you start</h2>
+      <ol>
+        <li>Enable <strong>Development Mode</strong> in the device's Security settings.</li>
+        <li>The device web service uses HTTPS with a self-signed certificate. The local proxy accepts it for you.</li>
+        <li>An app that is incompatible with BB10 / PlayBook OS will not run regardless of how it was installed.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Ported from <a href="https://github.com/zhetengbiji/bb10-app-manager" target="_blank"
+        rel="noreferrer">zhetengbiji/bb10-app-manager</a>. Everything runs locally on your machine.
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+
+</html>
