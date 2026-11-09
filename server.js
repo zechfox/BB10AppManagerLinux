@@ -7,7 +7,7 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 
-const PORT = Number(process.env.PORT || 8080)
+const PORT = Number(process.env.PORT || 8810)
 const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1'
 const PUBLIC_DIR = path.join(__dirname, 'public')
 const DEVICE_USER_AGENT = 'QNXWebClient/1.0'

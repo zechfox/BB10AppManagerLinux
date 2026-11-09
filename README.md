@@ -28,7 +28,7 @@ npm start
 node server.js
 ```
 
-Then open <http://127.0.0.1:8080> in your browser.
+Then open <http://127.0.0.1:8810> in your browser.
 
 Add one or more device hostnames/IPs, click **Open**, and log in with the device
 password. The rest of the UI is the original app manager UI: list apps, install
@@ -38,7 +38,7 @@ an **Export list** button that saves the installed apps as a CSV inventory.
 You can also jump straight to a device:
 
 ```text
-http://127.0.0.1:8080/?host=192.168.1.42
+http://127.0.0.1:8810/?host=192.168.1.42
 ```
 
 Change the port with `PORT=9000 npm start`. To listen on all interfaces use
@@ -48,7 +48,7 @@ Change the port with `PORT=9000 npm start`. To listen on all interfaces use
 
 ```
 Browser  ──HTTP──▶  local Node proxy  ──HTTPS (TLS verification off)──▶  BB10 / PlayBook
-   │                  (127.0.0.1:8080)
+   │                  (127.0.0.1:8810)
    └── static HTML/JS (public/)
 ```
 
