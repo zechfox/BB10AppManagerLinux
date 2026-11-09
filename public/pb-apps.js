@@ -46,6 +46,17 @@ function L (b) {
         head.appendChild(link);
     }
 }
+function showApps () {
+    var d = J("content"), n = J("news");
+    d && d.classList.remove("showing-output");
+    n && (n.innerHTML = "");
+    J("gohome") && (J("gohome").style.display = "none")
+}
+function showOutput () {
+    var d = J("content");
+    d && d.classList.add("showing-output");
+    J("gohome") && (J("gohome").style.display = "inline-block")
+}
 function ea () {
     L("<h2>" + (fa(!0) ? "Logged out" : "Unable to log out") + '</h2><button onclick="ga()">Log in again</button>')
 }
@@ -178,7 +189,8 @@ function fa (b) {
 }
 function M (b) {
     if (b = !0 !== b)
-        x ? (x.innerHTML = "Refresh list of installed apps ...",
+        x ? (showApps(),
+            x.innerHTML = "Refresh list of installed apps ...",
             y.innerHTML = "<progress id=prog></progress>") : L("<h1>Retrieve list of installed apps from BB10 / PlayBook device ...</h1>");
     var d = new XMLHttpRequest
         , e = new FormData;
@@ -265,7 +277,7 @@ function ta (b) {
                 return a.src > b.src ? 1 : -1
             });
             J("apptbl") ? (d = J("apptbl"),
-                d.innerHTML = '<tr class=head><th class=head><button class="updtbl" onclick="M()">Refresh List</button>Name</th><th colspan=2 title="Internal | AppWorld">Version</th>' + (e ? "<th>Size</th>" : "") + "<th id=srcth>Source</th><th class=cmdcol>Command</th></tr>") : (L('<head><title>BB10 / PlayBook App Manager</title><style>body,input,select,textarea,button{font:16px verdana,tahoma,arial,sans-serif}div.content{margin-top:129px}table.apptbl{border-collapse:collapse;border:solid #999 2px}th,select{background:#ccc}td.size{text-align:right}select{font-weight:bold;min-width:76px}option.src{background:#fff}.ok{color:#4a4}.err{color:#f66}.other{color:#f90}.file{color:#66f}span.footnote{color:#888;font-size:13px;line-height:90px}tr:hover{background:#ffa}.pointer:hover{background:#feb;border-radius:3px;-webkit-transition:background .5s;-moz-transition:background .5s}tr.blink{background:#ccf}tr.head{height:30px}th.head{height:24px}button.updtbl{position:absolute;left:12px;height:24px;margin-top:-3px}div#panel{position:fixed;background:#f1f1f1;padding:2px 2px 0 2px;border-bottom:1px solid #eee;border-color:#ccc;top:0px;left:0px;width:100%;height:118px;overflow-x:hidden;z-index:9}div.box-shadow{border-color:#aaa !important;box-shadow:0 1px 10px rgba(102,102,102,.4)}div.info{float:left;width:66%;padding-right:.5%}div.queue{position:absolute;left:66.5%;width:33%;padding-left:.5%;border-left:1px solid #ddd}div.title{height:24px;line-height:24px;margin-left:2px;width:100%;overflow:hidden}div#headline{font-weight:bold;text-shadow: 0 0 1px #aaa}div.cross{width:16px;height:16px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKBAMAAAB/HNKOAAAAD1BMVEUAAAAAAAAAAAAAAAAAAABPDueNAAAABHRSTlMA7zBgg9mmrAAAADNJREFUeF4li4EJADAMwkI/WNcD2n2wEwr7/6YVBBGJyk1sE0716EywWJ1Qz5GLqNVSrw+bZAUvknrSxQAAAABJRU5ErkJggg==) no-repeat 3px 3px}div#gohome{float:right;margin-top:3px;border:1px solid transparent;border-radius:2px;cursor:pointer}div#gohome:hover{border-color:#C6C6C6!important;background-image:-webkit-linear-gradient(top,#f8f8f8,#f1f1f1);background-image:-moz-linear-gradient(top,#f8f8f8,#f1f1f1)}button.tight{height:24px;margin-top:0;margin-bottom:0}ol.logs{margin:0}.pointer{cursor:pointer}pre.news{width:100%;margin:2px;font-family:Consolas,Lucida Console,dejavu sans mono,monospace;overflow-x:hidden}pre#news{height:90px}pre#qlist{height:90px;word-wrap:break-word}span#about{white-space:normal}input#files{height:0px;visibility:hidden;position:absolute}a{text-decoration:none;color:#26b}a:visited{color:#26b}a:hover,a:active{color:#F50}@media screen{select{-webkit-appearance:none;-webkit-user-select:none;background-image:-webkit-linear-gradient(#ededed, #ededed 38%, #dedede);border:1px solid rgba(0, 0, 0, 0.25);border-radius:2px;box-shadow:0 1px 0 rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.75);color:#444;font:inherit;margin:0 1px 0 0;text-shadow:0 1px 0 rgb(240, 240, 240);padding:0 2px 0 2px}select:disabled{color:graytext;background:-webkit-linear-gradient(#fefefe, #f8f8f8 40%, #e9e9e9);}select:enabled:hover{background-image:-webkit-linear-gradient(#f0f0f0, #f0f0f0 38%, #e0e0e0);border-color:rgba(0, 0, 0, 0.3);box-shadow:0 1px 0 rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.95);color:black;}select:enabled:active{background-image:-webkit-linear-gradient(#e7e7e7, #e7e7e7 38%, #d7d7d7);box-shadow:none;text-shadow:none;}}img{padding:0 4px 0 2px}@media print{#panel,.updtbl,.cmdcol{display:none}div.content{margin:0}select{-webkit-appearance:none;border:0}}</style><link rel="Shortcut Icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABmFBMVEUAAADS0tL///+YmJiLi4uKiorc3NyMjIzT09O5ubnu7u7////Z2dnNzc22trbCwsKxsbGNjY3T09Orq6vj4+Pw8PDa2trY2NjX19ednZ2ampr////S0tKcnJyVlZXp6emUlJSvr6+kpKTHx8eVlZWRkZGjo6OUlJSRkZGRkZGbm5taWlpZWVmYmJiIiIhYWFiZmZlUVFSHh4eXl5eUlJSEhISMjIyLi4uEhISUlJSUlJQDAwMQEBAICAgLCwsjIyNTU1NXV1chISEYGBgEBAQGBgYVFRVKSkoMDAwHBwcJCQlSUlJVVVVkZGRvb28fHx9ERESCgoJiYmIsLCwiIiI1NTVgYGDj4+M8PDzHx8fZ2dkCAgIXFxdjY2MODg4aGhrd3d0wMDATExPg4OBQUFDMzMxpaWmenp5mZmaWlpZeXl5AQEAZGRnU1NS0tLSysrJubm7S0tK3t7d2dnY7OzuBgYGfn5+4uLh8fHzBwcHQ0NDe3t4RERHNzc2vr6+ampqUlJQSEhJfX1+qqqpOTk6GhoaFhYU9PT22i8xkAAAAO3RSTlMA9Ab55Ovq8dzsXwfvzNfm5Pq/63RKvPC66uoFrOzjS/jv7K3m2O3gs8BX9/hlw/rr+sUDYMTu7sdjA+g2eC4AAADuSURBVHheTcDTVkQBAAXQM0S2bdvXxtj2ZNvWb1cPtdqAsazJbq0wGJqt9pbGcqC9w1RysmwkwrLOkqnOiO6egOdPurYB/az7n7dKVPk4LhF9DESLfo7jdqtRE1NcucT7aW7foyhKzIH68Oev65vzcC/6gvmn+Gb+Nf5xdru+ERxCK89cXF4xB4dp5hvfiTZZEIS9H0fHJ4I8gy5dojN37vuHZ5f/RdMHMEgmCVHb2t6hJJFIZoYxEiJESadVldY1kQiNYmxcolSyIMsFUqW0iUlgappPZb0M482m+Nm5eQALi2bLks22bDGvrK7hC1qcRWT2+eRhAAAAAElFTkSuQmCC"/></head><body ondragover="event.preventDefault()" ondrop="return ha(event.dataTransfer)"><div id="panel"><div class=info><div class=title><div id=gohome onclick="va()"><div class="cross"></div></div><div id=headline></div></div><pre id=news class=news></pre></div><div class=queue><div class=title><form onsubmit="return false"><button id=fbtn class=tight onclick="this.form.files.click()">Install Apps</button><input id="files" type="file" multiple onchange="ha(this)" accept=".bar"> <span id=lbtn></span> <label><input id=ial type=checkbox>Launch after install</label></form> <a href="index.html" style="font-size:13px;margin-left:6px">&larr; Devices</a></div><pre id=qlist class=news></pre></div></div><div class=content><table cellpadding=3 cellspacing=2 border=1 class=apptbl><tbody id=apptbl><tr class=head><th class=head><button class="updtbl" onclick="M()">Refresh List</button>Name</th><th colspan=2 title="Internal | AppWorld">Version</th>' + (e ? "<th>Size</th>" : "") + "<th id=srcth>Source</th><th class=cmdcol>Command</th></tr></tbody></table></div></body>"),
+                d.innerHTML = '<tr class=head><th class=head>Name</th><th colspan=2 title="Internal | AppWorld">Version</th>' + (e ? "<th>Size</th>" : "") + "<th id=srcth>Source</th><th class=cmdcol>Command</th></tr>") : (L('<head><title>BB10 / PlayBook App Manager</title><style>body,input,select,textarea,button{font:16px verdana,tahoma,arial,sans-serif}div.content{margin-top:129px}table.apptbl{border-collapse:collapse;border:solid #999 2px}th,select{background:#ccc}td.size{text-align:right}select{font-weight:bold;min-width:76px}option.src{background:#fff}.ok{color:#4a4}.err{color:#f66}.other{color:#f90}.file{color:#66f}span.footnote{color:#888;font-size:13px;line-height:90px}tr:hover{background:#ffa}.pointer:hover{background:#feb;border-radius:3px;-webkit-transition:background .5s;-moz-transition:background .5s}tr.blink{background:#ccf}tr.head{height:30px}th.head{height:24px}button.updtbl{position:absolute;left:12px;height:24px;margin-top:-3px}div#panel{position:fixed;background:#f1f1f1;padding:2px 2px 0 2px;border-bottom:1px solid #eee;border-color:#ccc;top:0px;left:0px;width:100%;height:118px;overflow-x:hidden;z-index:9}div.box-shadow{border-color:#aaa !important;box-shadow:0 1px 10px rgba(102,102,102,.4)}div.info{float:left;width:66%;padding-right:.5%}div.queue{position:absolute;left:66.5%;width:33%;padding-left:.5%;border-left:1px solid #ddd}div.title{height:24px;line-height:24px;margin-left:2px;width:100%;overflow:hidden}div#headline{font-weight:bold;text-shadow: 0 0 1px #aaa}div.cross{width:16px;height:16px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKBAMAAAB/HNKOAAAAD1BMVEUAAAAAAAAAAAAAAAAAAABPDueNAAAABHRSTlMA7zBgg9mmrAAAADNJREFUeF4li4EJADAMwkI/WNcD2n2wEwr7/6YVBBGJyk1sE0716EywWJ1Qz5GLqNVSrw+bZAUvknrSxQAAAABJRU5ErkJggg==) no-repeat 3px 3px}div#gohome{float:right;margin-top:3px;border:1px solid transparent;border-radius:2px;cursor:pointer}div#gohome:hover{border-color:#C6C6C6!important;background-image:-webkit-linear-gradient(top,#f8f8f8,#f1f1f1);background-image:-moz-linear-gradient(top,#f8f8f8,#f1f1f1)}button.tight{height:24px;margin-top:0;margin-bottom:0}ol.logs{margin:0}.pointer{cursor:pointer}pre.news{width:100%;margin:2px;font-family:Consolas,Lucida Console,dejavu sans mono,monospace;overflow-x:hidden}pre#news{height:90px}pre#qlist{height:90px;word-wrap:break-word}span#about{white-space:normal}input#files{height:0px;visibility:hidden;position:absolute}a{text-decoration:none;color:#26b}a:visited{color:#26b}a:hover,a:active{color:#F50}@media screen{select{-webkit-appearance:none;-webkit-user-select:none;background-image:-webkit-linear-gradient(#ededed, #ededed 38%, #dedede);border:1px solid rgba(0, 0, 0, 0.25);border-radius:2px;box-shadow:0 1px 0 rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.75);color:#444;font:inherit;margin:0 1px 0 0;text-shadow:0 1px 0 rgb(240, 240, 240);padding:0 2px 0 2px}select:disabled{color:graytext;background:-webkit-linear-gradient(#fefefe, #f8f8f8 40%, #e9e9e9);}select:enabled:hover{background-image:-webkit-linear-gradient(#f0f0f0, #f0f0f0 38%, #e0e0e0);border-color:rgba(0, 0, 0, 0.3);box-shadow:0 1px 0 rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.95);color:black;}select:enabled:active{background-image:-webkit-linear-gradient(#e7e7e7, #e7e7e7 38%, #d7d7d7);box-shadow:none;text-shadow:none;}}img{padding:0 4px 0 2px}@media print{#panel,.updtbl,.cmdcol{display:none}div.content{margin:0}select{-webkit-appearance:none;border:0}}</style><link rel="Shortcut Icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABmFBMVEUAAADS0tL///+YmJiLi4uKiorc3NyMjIzT09O5ubnu7u7////Z2dnNzc22trbCwsKxsbGNjY3T09Orq6vj4+Pw8PDa2trY2NjX19ednZ2ampr////S0tKcnJyVlZXp6emUlJSvr6+kpKTHx8eVlZWRkZGjo6OUlJSRkZGRkZGbm5taWlpZWVmYmJiIiIhYWFiZmZlUVFSHh4eXl5eUlJSEhISMjIyLi4uEhISUlJSUlJQDAwMQEBAICAgLCwsjIyNTU1NXV1chISEYGBgEBAQGBgYVFRVKSkoMDAwHBwcJCQlSUlJVVVVkZGRvb28fHx9ERESCgoJiYmIsLCwiIiI1NTVgYGDj4+M8PDzHx8fZ2dkCAgIXFxdjY2MODg4aGhrd3d0wMDATExPg4OBQUFDMzMxpaWmenp5mZmaWlpZeXl5AQEAZGRnU1NS0tLSysrJubm7S0tK3t7d2dnY7OzuBgYGfn5+4uLh8fHzBwcHQ0NDe3t4RERHNzc2vr6+ampqUlJQSEhJfX1+qqqpOTk6GhoaFhYU9PT22i8xkAAAAO3RSTlMA9Ab55Ovq8dzsXwfvzNfm5Pq/63RKvPC66uoFrOzjS/jv7K3m2O3gs8BX9/hlw/rr+sUDYMTu7sdjA+g2eC4AAADuSURBVHheTcDTVkQBAAXQM0S2bdvXxtj2ZNvWb1cPtdqAsazJbq0wGJqt9pbGcqC9w1RysmwkwrLOkqnOiO6egOdPurYB/az7n7dKVPk4LhF9DESLfo7jdqtRE1NcucT7aW7foyhKzIH68Oev65vzcC/6gvmn+Gb+Nf5xdru+ERxCK89cXF4xB4dp5hvfiTZZEIS9H0fHJ4I8gy5dojN37vuHZ5f/RdMHMEgmCVHb2t6hJJFIZoYxEiJESadVldY1kQiNYmxcolSyIMsFUqW0iUlgappPZb0M482m+Nm5eQALi2bLks22bDGvrK7hC1qcRWT2+eRhAAAAAElFTkSuQmCC"/></head><body ondragover="event.preventDefault()" ondrop="return ha(event.dataTransfer)"><div class=app-layout><aside id=panel><div class=brand><div class=brand-name>BB10 / PlayBook</div><div class=brand-sub>App Manager <span class=other>2.2</span></div></div><div id=status class=device-info><div class=device-info-title>Device Information</div><div class=info-row><span class=info-label>Host</span><span id=dev-host class=info-value></span></div><div class=info-row><span class=info-label>Free space</span><span id=dev-free class=info-value>&mdash;</span></div><div class=info-row><span class=info-label>Battery</span><span id=dev-battery class=info-value>&mdash;</span></div><div class=info-row><span class=info-label>Apps</span><span id=dev-apps class=info-value>&mdash;</span></div></div><nav class=panel-nav><button class=nav-item onclick="va()">Installed apps</button><button class=nav-item onclick="Da(this)" data-command="List Device Info">Detail Device Info</button><button class=nav-item onclick="Ea()">Install logs</button><button class=nav-item onclick="Ja()">About</button></nav><div class=queue><div class=queue-title>Install</div><form onsubmit="return false"><button id=fbtn class=tight onclick="this.form.files.click()">Install Apps</button><input id="files" type="file" multiple onchange="ha(this)" accept=".bar"> <label><input id=ial type=checkbox>Launch after install</label> <span id=lbtn></span></form><pre id=qlist class=news></pre></div><div class=panel-foot><button onclick="ea()">Log out</button><a href="index.html">&larr; Devices</a></div></aside><main id=content class=content><div class=content-head><div class=title><div id=gohome onclick="va()"><div class="cross"></div></div><div id=headline></div></div><pre id=news class=news></pre></div><section id=pane-apps class=pane><div class=apps-toolbar><button class=toolbar-btn onclick="M()">Refresh list</button><button class=toolbar-btn onclick="bbExportApps()">Export list</button></div><div class=table-scroll><table cellpadding=3 cellspacing=2 border=1 class=apptbl><tbody id=apptbl><tr class=head><th class=head>Name</th><th colspan=2 title="Internal | AppWorld">Version</th>' + (e ? "<th>Size</th>" : "") + "<th id=srcth>Source</th><th class=cmdcol>Command</th></tr></tbody></table></div></section></main></div></body>"),
                     ca = J("panel"),
                     x = J("headline"),
                     y = J("news"),
@@ -292,6 +304,7 @@ function ta (b) {
                     m.src != P && (I[0].push(P = m.src),
                         I[1].push(a.rowIndex));
             I[1].push(d.rows.length);
+            J("dev-apps") && (J("dev-apps").textContent = (d.rows.length - 1) + "");
             xa();
             b && va()
         } else
@@ -341,7 +354,8 @@ function ya (b, d, e, a) {
         case "Uninsta":
             f = 1
     }
-    x.innerHTML = b + " <span class=file>" + d + "</span> ..." + (e ? " (" + (e + 1) + "/10)" : "");
+    var label = "List Device Info" == b ? "Detail Device Info" : b;
+    x.innerHTML = label + " <span class=file>" + d + "</span> ..." + (e ? " (" + (e + 1) + "/10)" : "");
     if (this.responseText) {
         y.innerHTML = this.responseText;
         var c = this.responseText.split("\n")
@@ -385,14 +399,13 @@ function ya (b, d, e, a) {
                     g | 0 ? (g = "success",
                         c = "ok") : c = "other"
             }
-            x.innerHTML = b + " <span class=file>" + d + "</span>: <span class=" + c + ">" + g + "</span>";
+            x.innerHTML = label + " <span class=file>" + d + "</span>: <span class=" + c + ">" + g + "</span>";
             h && (x.innerHTML = "<span class=pointer onclick='Aa(" + (2 == f ? v.length : '"' + h + '"') + ")'>" + x.innerHTML + "</span>");
             2 == f && (!1 === h ? u.unshift(null) : (v.push([c, x.innerHTML, h]),
                 u.j()))
         }
     }
-    y.scrollTop = y.scrollHeight;
-    J("gohome").style.display = "inline-block"
+    y.scrollTop = y.scrollHeight
 }
 function N (b, d) {
     var e = b.value ? b.value : b.innerHTML;
@@ -426,7 +439,10 @@ function Ba (b, d) {
     appInstallerAsync(a, e, ya.bind(a, b, this.name, d, Ba.bind(this, b)))
 }
 function Da (b) {
-    b = b.innerHTML;
+    b = b.getAttribute && (b.getAttribute("data-command") || b.innerHTML) || "List Device Info";
+    showOutput();
+    x.innerHTML = "Detail Device Info ...";
+    y.innerHTML = "<progress id=prog></progress>";
     var d = new XMLHttpRequest
         , e = new FormData;
     e.append("command", b);
@@ -447,6 +463,7 @@ function Ea (b) {
             err: "Failure",
             other: "Other"
         };
+    showOutput();
     if (e) {
         for (var c = 0; c < e; ++c)
             b && b != v[c][0] || (d += "<li>" + v[c][1] + "</li>"),
@@ -457,9 +474,11 @@ function Ea (b) {
             for (c in a)
                 a[c] && (d += " <button class='tight " + c + "' onclick='Ea(" + (c ? '"' + c + '"' : "") + ")'>" + f[c] + " (" + a[c] + ")</button>");
             d += ' | <button class=tight onclick="Fa()">Clear Logs</button>';
-            x.innerHTML = d;
-            J("gohome").style.display = "inline-block"
+            x.innerHTML = d
         }
+    } else if (!b) {
+        x.innerHTML = "Install logs";
+        y.innerHTML = "<span class=footnote>No install logs yet.</span>"
     }
 }
 function Fa () {
@@ -527,34 +546,51 @@ function Ca (b) {
             this.e = [Date.now(), b.loaded]
 }
 function va () {
+    showApps();
+    x && (x.innerHTML = "Installed apps");
+    var h = J("dev-host"), f = J("dev-free"), bt = J("dev-battery"), a = J("dev-apps");
+    h && (h.textContent = DEVICE_HOST);
+    f && (f.textContent = "\u2026", f.className = "info-value", f.removeAttribute("title"));
+    bt && (bt.textContent = "\u2026", bt.className = "info-value");
+    if (a) {
+        var t = J("apptbl");
+        a.textContent = t && 1 < t.rows.length ? t.rows.length - 1 : "\u2014"
+    }
     if ("169.254." == DEVICE_HOST.slice(0, 8)) {
         var b = new XMLHttpRequest;
         b.onloadend = Ia;
         b.open("GET", PB_BASE + "/cgi-bin/dynamicProperties.cgi", !0);
-        b.send();
-        Ia('<span style="color:#bbb">Loading device status ...</span>')
-    } else
-        Ia('<span style="color:#bbb">Device status is not available via wireless connection.</span>')
+        b.send()
+    } else {
+        f && (f.textContent = "n/a");
+        bt && (bt.textContent = "n/a")
+    }
 }
-function Ia (b) {
-    "string" !== typeof b && (b = "");
+function Ia () {
+    var f = J("dev-free"), bt = J("dev-battery");
     if (200 == this.status && this.responseXML)
         try {
             var d = this.responseXML.getElementsByTagName("BatteryLevel")[0].textContent | 0
                 , e = this.responseXML.getElementsByTagName("FreeApplicationSpace")[0].textContent
                 , a = wa(e);
-            b = "Free Space: " + ("<span class=" + ("GB" == a.slice(-2) ? "file" : "other") + ' title="' + e.slice(0, e.length % 3) + e.slice(e.length % 3).replace(/(\d{3})/g, ",$1") + ' bytes">' + a + "</span>") + ' <span style="color:#bbb">|</span> Battery Level: <span class=' + (60 > d ? 20 > d ? "err" : "other" : "ok") + ">" + d + "</span>"
-        } catch (f) {
-            b = '<span style="color:#bbb">Device is disconnected.</span>'
+            f && (f.textContent = a,
+                f.className = "info-value " + ("GB" == a.slice(-2) ? "file" : "other"),
+                f.title = e.slice(0, e.length % 3) + e.slice(e.length % 3).replace(/(\d{3})/g, ",$1") + " bytes");
+            bt && (bt.textContent = d,
+                bt.className = "info-value " + (60 > d ? 20 > d ? "err" : "other" : "ok"))
+        } catch (c) {
+            f && (f.textContent = "n/a");
+            bt && (bt.textContent = "n/a")
         }
-    x.innerHTML = "BB10 / PlayBook App Manager 2.2";
-    y.innerHTML = b + '\n\n<button onclick="ea()">Log out</button> <button onclick="Da(this)">List Device Info</button> <button onclick="Ja()">About</button> <a href="index.html">&larr; Devices</a>';
-    J("gohome").style.display = "none"
+    else {
+        f && (f.textContent = "n/a");
+        bt && (bt.textContent = "n/a")
+    }
 }
 function Ja () {
     x.innerHTML = "About <span class=file>BB10 / PlayBook App Manager</span> <span class=other>2.2</span>";
     y.innerHTML = '<span id=about>Copyright &copy; 2012 George J (&#x6a;&#x67;&#x63;&#x40;&#x67;&#x72;&#x69;&#x64;&#x62;&#x6f;&#x6f;&#x6b;&#x2e;&#x6f;&#x72;&#x67;)<br>Software Homepage: <a href="http://gridbook.org/pb-app-mgr/" target="_blank">http://gridbook.org/pb-app-mgr/</a><br>Your donations will make me feel warm and fuzzy and thus keep this app alive/updated. If you like this app and want to show your appreciation of my work, please donate to <span class=ok>&#x6a;&#x67;&#x63;&#x40;&#x67;&#x72;&#x69;&#x64;&#x62;&#x6f;&#x6f;&#x6b;&#x2e;&#x6f;&#x72;&#x67;</span> via PayPal. (Choose Personal instead of Purchase)<br>Distributed under the <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank">Creative Commons BY-NC-SA License</a>.<br>JavaScript libraries of SHA-512 and MD5 are originally implemented by <a href="http://pajhome.org.uk/crypt/md5/index.html" target="_blank">Paul Johnston</a>.</span>';
-    J("gohome").style.display = "inline-block"
+    showOutput()
 }
 u.k = function (b) {
     b && (this[0] = null);
@@ -856,5 +892,50 @@ function W (b, d, e, a, f, c, g) {
 }
 function $ (b, d, e, a, f, c, g) {
     return Z(e ^ (d | ~a), b, d, f, c, g)
+}
+function bbExportApps () {
+    var table = J("apptbl");
+    if (!table || 2 > table.rows.length) return;
+    function cellText (cell) {
+        var text = String(cell ? cell.textContent || "" : "").replace(/\s+/g, " ").trim();
+        return /^[-\u2013\u2014]$/.test(text) ? "" : text
+    }
+    function csv (value) {
+        var text = String(value == null ? "" : value);
+        return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text
+    }
+    var hasSize = /Size/.test(table.rows[0].textContent)
+        , lines = ["Name,Package ID,Version,Size,Source"];
+    for (var i = 1; i < table.rows.length; i++) {
+        var cells = table.rows[i].cells
+            , command = cells[cells.length - 1]
+            , source = cells[cells.length - 2]
+            , version = []
+            , lastVersion = hasSize ? cells.length - 4 : cells.length - 3;
+        for (var c = 1; c <= lastVersion; c++) {
+            var part = cellText(cells[c]);
+            part && version.push(part)
+        }
+        lines.push([
+            csv(cellText(cells[0])),
+            csv(command ? command.id : ""),
+            csv(version.join(" ")),
+            csv(hasSize ? cellText(cells[cells.length - 3]) : ""),
+            csv(cellText(source))
+        ].join(","))
+    }
+    var blob = new Blob([lines.join("\r\n") + "\r\n"], {
+        type: "text/csv;charset=utf-8"
+    })
+        , url = URL.createObjectURL(blob)
+        , link = document.createElement("a");
+    link.href = url;
+    link.download = "bb10-apps-" + String(DEVICE_HOST).replace(/[^A-Za-z0-9._-]+/g, "_") + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () {
+        URL.revokeObjectURL(url)
+    }, 1000)
 }
 ga();

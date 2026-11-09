@@ -32,7 +32,8 @@ Then open <http://127.0.0.1:8080> in your browser.
 
 Add one or more device hostnames/IPs, click **Open**, and log in with the device
 password. The rest of the UI is the original app manager UI: list apps, install
-`.bar` files (drag and drop), launch, terminate and uninstall.
+`.bar` files (drag and drop), launch, terminate and uninstall. The app list also has
+an **Export list** button that saves the installed apps as a CSV inventory.
 
 You can also jump straight to a device:
 
