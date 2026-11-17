@@ -59,6 +59,17 @@ Authorized keys are listed with fingerprints and can be added, replaced or revok
 legacy `ssh-rsa` options. **Enable auto-start** calls BerryCore's `settings sshd-on`,
 so sshd starts on the next Term49 login.
 
+The same navigation also has a **Term49** pane for editing Term49's config through
+term49-web. It auto-detects `.term49rc` (BerryFarm Term49) and `.term48rc`
+(BerryCore's Term48-based Term49 package), and the file can be selected manually. It
+offers foreground/background theme presets, font path and size (with a device font
+scan), virtual-keyboard/screen/column/encoding options, and a raw libconfig editor.
+Saving preserves unrelated settings such as custom metamode keys and writes a `.bak`
+backup first. Term49 only exposes default text and background colors, so the ANSI
+palette used by `ls`, `git` and editors stays fixed. Close and reopen Term49 to apply
+changes. Like the SSH pane, this requires term49-web to be running. The page is also
+available standalone as `term49.html?host=<host>`.
+
 > **Security:** term49-web is an unauthenticated terminal. The SSH panel proxies it
 > through this local app and validates the WebSocket origin, but the app still only
 > listens on `127.0.0.1` by default. Do not use `LISTEN_HOST=0.0.0.0` with this feature
@@ -114,9 +125,12 @@ Only the network layer changed; app management behaviour is unchanged.
 - Device status (battery / free space) is only shown for USB addresses
   (`169.254.x.x`), same as the original.
 - Closing the Node process clears login sessions and requires logging in again.
-- The SSH panel requires `term49-web` to be running on the device, and term49-web
-  has no boot autostart; start it in Term49 after each reboot. Auto-start (`settings
-  sshd-on`) starts sshd on the next Term49 login, not at device boot.
+- The SSH and Term49 panels require `term49-web` to be running on the device, and
+  term49-web has no boot autostart; start it in Term49 after each reboot. Auto-start
+  (`settings sshd-on`) starts sshd on the next Term49 login, not at device boot.
+- The Term49 pane edits the active config (`.term49rc`, or `.term48rc` on BerryCore's
+  Term49 package) inside Term49's sandbox. It cannot change the compiled 256-color ANSI
+  palette; use a themeable browser terminal if you need that.
 - SSH keys live in Term49's real home (`$SANDBOX/data/.ssh`) and are managed through
   term49-web; they are not reachable over Wi-Fi Storage.
 
