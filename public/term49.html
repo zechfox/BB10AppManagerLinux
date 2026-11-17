@@ -65,13 +65,15 @@ Then open this pane again.</pre>
         <span>Config file</span>
         <select id="config-file">
           <option value="auto">Auto-detect</option>
+          <option value="term49cjkrc">.term49cjkrc</option>
           <option value="term49rc">.term49rc</option>
           <option value="term48rc">.term48rc</option>
         </select>
       </label>
       <p class="term-note">Original BerryFarm Term49 uses <code>.term49rc</code>; BerryCore's Term49
-        package is Term48-based and uses <code>.term48rc</code>. Auto-detect checks the app sandbox and existing
-        files.</p>
+        package is Term48-based and uses <code>.term48rc</code>. The Classic companion
+        (<code>.term49cjkrc</code>) takes priority when auto-detect is on and it is installed. Auto-detect checks
+        the app sandbox and existing files.</p>
       <div class="actions">
         <button type="button" id="reconnect" class="primary">Reconnect</button>
         <button type="button" id="reload" class="ghost">Reload from device</button>
@@ -177,6 +179,51 @@ Then open this pane again.</pre>
         for arrows, <code>c</code> for Ctrl and <code>v</code> to paste.</p>
     </section>
 
+    <section class="card term-card" id="classic-card">
+      <div class="card-head">
+        <div>
+          <h2>Classic companion</h2>
+          <p class="card-sub">Build and manage <a href="https://github.com/wesley138cn/bb10-classic-toolkit"
+              target="_blank" rel="noreferrer">Term49-Classic</a> on the device: 4,096-line scrollback and a
+            terminal-local Pinyin IME, attached to the signed Term49 window. Everything compiles on-device with
+            BerryCore's GCC.</p>
+        </div>
+        <span class="badge" id="classic-state">&mdash;</span>
+      </div>
+      <div class="term-meta-grid">
+        <div><span>Toolchain</span><code id="cl-toolchain">&mdash;</code></div>
+        <div><span>Source &amp; deps</span><code id="cl-deps">&mdash;</code></div>
+        <div><span>Build</span><code id="cl-build">&mdash;</code></div>
+        <div><span>Runtime</span><code id="cl-runtime">&mdash;</code></div>
+        <div><span>Auto-start</span><code id="cl-auto">&mdash;</code></div>
+        <div><span>Running</span><code id="cl-running">&mdash;</code></div>
+      </div>
+      <p class="term-note" id="cl-note">Jobs (toolchain download, source fetch, build) run on the device in the
+        background; this pane polls their status. Launching needs the device <strong>unlocked with Term49 in the
+          foreground</strong>.</p>
+      <div class="actions">
+        <button type="button" id="cl-refresh" class="ghost">Refresh</button>
+        <button type="button" id="cl-toolchain-btn" class="primary">Install toolchain</button>
+        <button type="button" id="cl-fetch-btn" class="primary">Fetch source</button>
+        <button type="button" id="cl-build-btn" class="primary">Build</button>
+        <button type="button" id="cl-install-btn" class="primary">Install runtime</button>
+        <button type="button" id="cl-enable-btn" class="primary">Enable auto-start</button>
+        <button type="button" id="cl-disable-btn" class="ghost">Disable</button>
+        <button type="button" id="cl-launch-btn" class="ghost">Launch now</button>
+        <button type="button" id="cl-stop-btn" class="ghost">Stop</button>
+      </div>
+      <details class="term-advanced">
+        <summary>Job logs</summary>
+        <div class="actions">
+          <button type="button" id="cl-log-build" class="ghost">Build log</button>
+          <button type="button" id="cl-log-fetch" class="ghost">Fetch log</button>
+          <button type="button" id="cl-log-tc" class="ghost">Toolchain log</button>
+          <button type="button" id="cl-log-term" class="ghost">Companion log</button>
+        </div>
+        <pre class="term-code" id="cl-log">No log loaded.</pre>
+      </details>
+    </section>
+
     <section class="card term-card">
       <div class="card-head">
         <div>
@@ -215,7 +262,7 @@ Then open this pane again.</pre>
     </section>
   </main>
 
-  <script src="term49.js?v=1"></script>
+  <script src="term49.js?v=2"></script>
 </body>
 
 </html>

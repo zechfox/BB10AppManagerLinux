@@ -40,6 +40,10 @@
   var queue = Promise.resolve()
   var active = null
   var dirty = false
+  var classicStatus = {}
+  var classicUploaded = false
+  var classicPromise = null
+  var classicTimer = null
 
   function normalizeHost (value) {
     var host = String(value || '').trim()
@@ -61,7 +65,11 @@
       'fg-color', 'fg-hex', 'bg-color', 'bg-hex', 'preview', 'font-path', 'font-list',
       'font-size', 'font-size-range', 'scan-fonts', 'default-font', 'auto-show-vkb',
       'screen-awake', 'allow-resize', 'tty-encoding', 'save', 'copy-config', 'save-note',
-      'advanced-config', 'save-raw', 'log', 'clear-log'
+      'advanced-config', 'save-raw', 'log', 'clear-log',
+      'classic-state', 'cl-toolchain', 'cl-deps', 'cl-build', 'cl-runtime', 'cl-auto', 'cl-running',
+      'cl-note', 'cl-refresh', 'cl-toolchain-btn', 'cl-fetch-btn', 'cl-build-btn', 'cl-install-btn',
+      'cl-enable-btn', 'cl-disable-btn', 'cl-launch-btn', 'cl-stop-btn', 'cl-log',
+      'cl-log-build', 'cl-log-fetch', 'cl-log-tc', 'cl-log-term'
     ]
     ids.forEach(function (id) {
       el[id] = $(id)
@@ -121,6 +129,7 @@
     el['save-raw'].disabled = !connected || busy || !canWrite
     el['scan-fonts'].disabled = !connected || busy
     el['config-file'].disabled = busy
+    updateClassicButtons()
   }
 
   function wsUrl () {
@@ -157,6 +166,9 @@
         .then(refreshStatus)
         .then(function () {
           if (canWrite) return loadConfig()
+        })
+        .then(function () {
+          return refreshClassic().catch(function () { })
         })
         .catch(function (err) {
           log('Term49 settings setup failed: ' + err.message)
@@ -248,11 +260,13 @@
   }
 
   function homePrefix () {
-    return 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; P="$D/.term49rc"; Q="$D/.term48rc"; '
+    return 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; P="$D/.term49rc"; Q="$D/.term48rc"; R="$D/.term49cjkrc"; '
   }
 
   function configFile () {
-    return configName === 'term48rc' ? '.term48rc' : '.term49rc'
+    if (configName === 'term48rc') return '.term48rc'
+    if (configName === 'term49cjkrc') return '.term49cjkrc'
+    return '.term49rc'
   }
 
   function configPrefix () {
@@ -268,20 +282,26 @@
     if (configMode !== 'auto') return configMode
     var path = String(status.SANDBOX || '') + ' ' + String(status.HOME || '')
     var berryCore = /com\.update\.Term49|Term48/i.test(path)
+    var hasCjk = status.HASCJK === '1'
     var has49 = status.HAS49 === '1'
     var has48 = status.HAS48 === '1'
+    // The Classic companion reads .term49cjkrc when its auto-start is enabled.
+    if (hasCjk && status.AUTO === '1') return 'term49cjkrc'
     if (has49 && !has48) return 'term49rc'
     if (has48 && !has49) return 'term48rc'
+    if (hasCjk) return 'term49cjkrc'
     if (has49 && has48) return berryCore ? 'term48rc' : 'term49rc'
     return berryCore ? 'term48rc' : 'term49rc'
   }
 
   function updateConfigOptions () {
     var auto = el['config-file'].querySelector('option[value="auto"]')
+    var optionCjk = el['config-file'].querySelector('option[value="term49cjkrc"]')
     var option49 = el['config-file'].querySelector('option[value="term49rc"]')
     var option48 = el['config-file'].querySelector('option[value="term48rc"]')
     if (!auto || !option49 || !option48) return
     auto.textContent = 'Auto-detect (.' + configName + ')'
+    if (optionCjk) optionCjk.textContent = '.term49cjkrc' + (status.HASCJK === '1' ? ' \u2014 present' : '')
     option49.textContent = '.term49rc' + (status.HAS49 === '1' ? ' \u2014 present' : '')
     option48.textContent = '.term48rc' + (status.HAS48 === '1' ? ' \u2014 present' : '')
     el.save.textContent = 'Save to ' + configFile()
@@ -306,12 +326,19 @@
       'S=$(wc -c < "$P" 2>/dev/null | tr -d " "); printf "SIZE49=%s\\n" "$S"; fi; ' +
       'if [ -f "$Q" ]; then printf "HAS48=1\\n"; ' +
       'S=$(wc -c < "$Q" 2>/dev/null | tr -d " "); printf "SIZE48=%s\\n" "$S"; fi; ' +
+      'if [ -f "$R" ]; then printf "HASCJK=1\\n"; ' +
+      'S=$(wc -c < "$R" 2>/dev/null | tr -d " "); printf "SIZECJK=%s\\n" "$S"; fi; ' +
+      '[ -f /accounts/1000/shared/misc/term49-cjk/enabled ] && printf "AUTO=1\\n"; ' +
       'true', 15000).then(function (result) {
       status = parseStatus(result.output)
       canWrite = status.DIRWRITE === '1'
       configName = chooseConfigName()
-      var hasActive = configName === 'term49rc' ? status.HAS49 === '1' : status.HAS48 === '1'
-      var activeSize = configName === 'term49rc' ? status.SIZE49 : status.SIZE48
+      var hasActive = configName === 'term49rc' ? status.HAS49 === '1'
+        : configName === 'term48rc' ? status.HAS48 === '1'
+          : status.HASCJK === '1'
+      var activeSize = configName === 'term49rc' ? status.SIZE49
+        : configName === 'term48rc' ? status.SIZE48
+          : status.SIZECJK
 
       el['st-home'].textContent = status.HOME || '\u2014'
       el['st-home'].title = status.HOME || ''
@@ -893,6 +920,190 @@
       })
   }
 
+  var CLASSIC_VERSION = '1'
+
+  function classicPrefix () {
+    return 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; CD="$D/.classic"; '
+  }
+
+  function classicCheckCommand () {
+    return classicPrefix() +
+      'if [ -f "$CD/term49-classic.sh" ] && grep -q "^CLASSIC_HELPER_VERSION=' + CLASSIC_VERSION + '$" "$CD/term49-classic.sh" 2>/dev/null; then echo CLASSIC_OK; else echo CLASSIC_MISSING; fi'
+  }
+
+  function uploadClassicHelper (text) {
+    var encoded = toBase64(text)
+    var chunks = []
+    for (var i = 0; i < encoded.length; i += 500) {
+      chunks.push(encoded.slice(i, i + 500))
+    }
+    var initCmd = classicPrefix() + 'mkdir -p "$CD"; chmod 700 "$CD"; rm -f "$CD/.helper.b64"; : > "$CD/.helper.b64"'
+    var finalCmd = classicPrefix() +
+      'if base64 -d "$CD/.helper.b64" > "$CD/term49-classic.sh" 2>/dev/null; then chmod 700 "$CD/term49-classic.sh"; echo CLASSIC_UPLOADED; else echo CLASSIC_UPLOAD_FAILED; fi; rm -f "$CD/.helper.b64"'
+    return runCommand(initCmd, 15000).then(function () {
+      var chain = Promise.resolve()
+      chunks.forEach(function (chunk, index) {
+        chain = chain.then(function () {
+          if (index === 0 || (index + 1) % 8 === 0 || index === chunks.length - 1) {
+            log('Uploading Classic helper ' + (index + 1) + '/' + chunks.length + '\u2026')
+          }
+          return runCommand('printf "%s" "' + chunk + '" >> "$CD/.helper.b64"', 15000)
+        })
+      })
+      return chain
+    }).then(function () {
+      return runCommand(finalCmd, 15000)
+    }).then(function (result) {
+      if (result.output.indexOf('CLASSIC_UPLOADED') < 0) {
+        throw new Error('Could not install the Classic helper on the device')
+      }
+      classicUploaded = true
+      log('Classic helper installed in Term49 home')
+    })
+  }
+
+  function ensureClassicHelper () {
+    if (classicUploaded) return Promise.resolve()
+    if (classicPromise) return classicPromise
+    classicPromise = runCommand(classicCheckCommand(), 10000)
+      .then(function (result) {
+        if (result.output.indexOf('CLASSIC_OK') >= 0) {
+          classicUploaded = true
+          return
+        }
+        return fetch('term49-classic.sh', { cache: 'no-store' }).then(function (response) {
+          if (!response.ok) throw new Error('could not load term49-classic.sh from the app')
+          return response.text()
+        }).then(uploadClassicHelper)
+      })
+      .then(function () {
+        classicPromise = null
+      })
+      .catch(function (err) {
+        classicPromise = null
+        throw err
+      })
+    return classicPromise
+  }
+
+  function classicRun (action, timeout) {
+    return ensureClassicHelper().then(function () {
+      return runCommand(classicPrefix() + 'sh "$CD/term49-classic.sh" ' + action, timeout || 30000)
+    })
+  }
+
+  function classicMark (element, ok, text) {
+    if (!element) return
+    element.textContent = text
+    element.className = ok === true ? 'ok' : ok === false ? 'bad' : ''
+  }
+
+  function classicJobsBusy () {
+    return classicStatus.TC_JOB === 'running' ||
+      classicStatus.FETCH_JOB === 'running' ||
+      classicStatus.BUILD_JOB === 'running'
+  }
+
+  function stopClassicPoll () {
+    if (classicTimer) {
+      clearInterval(classicTimer)
+      classicTimer = null
+    }
+  }
+
+  function startClassicPoll () {
+    stopClassicPoll()
+    classicTimer = setInterval(function () {
+      if (!connected || busy || active) return
+      refreshClassic().catch(function () { })
+    }, 4000)
+  }
+
+  function refreshClassic () {
+    if (!el['cl-refresh']) return Promise.resolve()
+    if (!connected) return Promise.reject(new Error('not connected'))
+    return classicRun('status', 30000).then(function (result) {
+      classicStatus = parseStatus(result.output)
+      var jobsRunning = classicJobsBusy()
+
+      classicMark(el['cl-toolchain'], classicStatus.TOOLCHAIN === '1',
+        classicStatus.TOOLCHAIN === '1' ? 'gcc 4.6.3 + SDK' : 'not installed')
+      var deps = classicStatus.TREE === '1' && classicStatus.DEPS === '1'
+      classicMark(el['cl-deps'], deps,
+        deps ? 'ready' + (classicStatus.TKVER ? ' (' + classicStatus.TKVER + ')' : '') : 'not fetched')
+      var buildState = classicStatus.BUILD_JOB || 'none'
+      var buildText = buildState === 'running' ? 'building\u2026'
+        : buildState === 'ok' ? (classicStatus.BUILT === '1' ? 'built' : 'done')
+          : buildState.indexOf('failed') === 0 ? buildState
+            : classicStatus.BUILT === '1' ? 'built' : '\u2014'
+      classicMark(el['cl-build'], classicStatus.BUILT === '1' && buildState !== 'failed:0', buildText)
+      classicMark(el['cl-runtime'], classicStatus.RUNTIME === '1' && classicStatus.BIN === '1',
+        classicStatus.BIN === '1' ? (classicStatus.RUNTIME === '1' ? 'installed' : 'partial') : 'not installed')
+      classicMark(el['cl-auto'], classicStatus.AUTO === '1',
+        classicStatus.AUTO === '1' ? 'enabled' : 'disabled')
+      classicMark(el['cl-running'], classicStatus.RUNNING !== '0' && classicStatus.RUNNING,
+        classicStatus.RUNNING && classicStatus.RUNNING !== '0'
+          ? 'pid ' + classicStatus.RUNNING
+          : (classicStatus.FORE && classicStatus.FORE !== '0' ? 'idle (Term49 foreground)' : '\u2014'))
+
+      var overall = classicStatus.RUNNING && classicStatus.RUNNING !== '0'
+        ? 'running'
+        : classicStatus.AUTO === '1' ? 'enabled' : classicStatus.BIN === '1' ? 'installed' : '\u2014'
+      el['classic-state'].textContent = overall
+      el['classic-state'].className = 'badge' +
+        (overall === 'running' ? ' ok' : overall === 'enabled' ? ' ok' : '')
+
+      updateClassicButtons()
+
+      if (jobsRunning) startClassicPoll()
+      else stopClassicPoll()
+      return classicStatus
+    })
+  }
+
+  function updateClassicButtons () {
+    if (!el['cl-refresh']) return
+    var s = classicStatus
+    var idle = connected && !busy
+    el['cl-refresh'].disabled = !connected || busy
+    el['cl-toolchain-btn'].disabled = !(idle && s.TOOLCHAIN !== '1')
+    el['cl-fetch-btn'].disabled = !idle
+    el['cl-build-btn'].disabled = !(idle && s.TOOLCHAIN === '1' && s.TREE === '1' && s.DEPS === '1')
+    el['cl-install-btn'].disabled = !(idle && s.BUILT === '1')
+    el['cl-enable-btn'].disabled = !(idle && s.BIN === '1' && s.AUTO !== '1')
+    el['cl-disable-btn'].disabled = !(idle && s.AUTO === '1')
+    el['cl-launch-btn'].disabled = !(idle && s.BIN === '1' && (!s.RUNNING || s.RUNNING === '0'))
+    el['cl-stop-btn'].disabled = !(idle && s.RUNNING && s.RUNNING !== '0')
+  }
+
+  function classicAction (name, label, timeout) {
+    if (busy || !connected) return
+    setBusy(true, label)
+    classicRun(name, timeout || 60000).then(function (result) {
+      if (result.output) log(result.output)
+      return refreshClassic().then(function () {
+        return refreshStatus().catch(function () { })
+      })
+    }).catch(function (err) {
+      log('Error: ' + err.message)
+      return refreshClassic().catch(function () { })
+    }).then(function () {
+      setBusy(false)
+    })
+  }
+
+  function classicLogView (which) {
+    if (busy || !connected) return
+    setBusy(true, 'Reading ' + which + ' log\u2026')
+    classicRun('log ' + which + ' 40', 30000).then(function (result) {
+      el['cl-log'].textContent = result.output || '(empty)'
+    }).catch(function (err) {
+      log('Error: ' + err.message)
+    }).then(function () {
+      setBusy(false)
+    })
+  }
+
   function init () {
     cacheElements()
     configMode = el['config-file'].value || 'auto'
@@ -945,7 +1156,7 @@
     })
     el['config-file'].addEventListener('change', function () {
       var next = el['config-file'].value
-      if (next !== 'auto' && next !== 'term49rc' && next !== 'term48rc') next = 'auto'
+      if (next !== 'auto' && next !== 'term49rc' && next !== 'term48rc' && next !== 'term49cjkrc') next = 'auto'
       if (next === configMode) return
       if (dirty && typeof window.confirm === 'function' &&
         !window.confirm('Discard unsaved changes and switch config file?')) {
@@ -983,6 +1194,49 @@
     el['reload'].addEventListener('click', reloadConfig)
     el['reconnect'].addEventListener('click', connect)
     el['clear-log'].addEventListener('click', function () { el.log.textContent = '' })
+
+    if (el['cl-refresh']) {
+      el['cl-refresh'].addEventListener('click', function () {
+        withBusy('Refreshing companion status\u2026', refreshClassic)
+      })
+      el['cl-toolchain-btn'].addEventListener('click', function () {
+        classicAction('toolchain', 'Installing GCC toolchain on the device (108 MB download)\u2026', 60000)
+      })
+      el['cl-fetch-btn'].addEventListener('click', function () {
+        classicAction('fetch', 'Fetching toolkit source and dependencies on the device\u2026', 60000)
+      })
+      el['cl-build-btn'].addEventListener('click', function () {
+        classicAction('build', 'Compiling Term49-Classic on the device\u2026', 60000)
+      })
+      el['cl-install-btn'].addEventListener('click', function () {
+        if (typeof window.confirm === 'function' &&
+          !window.confirm('Install the Term49-Classic runtime files? Your stock Term49 app is not modified.')) {
+          return
+        }
+        classicAction('install', 'Installing companion runtime\u2026')
+      })
+      el['cl-enable-btn'].addEventListener('click', function () {
+        if (typeof window.confirm === 'function' &&
+          !window.confirm('Enable auto-start? This appends a guarded block to .profile (backed up first). ' +
+            'Remove term49-cjk/enabled any time to return to stock Term49.')) {
+          return
+        }
+        classicAction('enable', 'Enabling auto-start\u2026')
+      })
+      el['cl-disable-btn'].addEventListener('click', function () {
+        classicAction('disable', 'Disabling auto-start\u2026')
+      })
+      el['cl-launch-btn'].addEventListener('click', function () {
+        classicAction('launch', 'Launching companion (device must be unlocked with Term49 in the foreground)\u2026')
+      })
+      el['cl-stop-btn'].addEventListener('click', function () {
+        classicAction('stop', 'Stopping companion\u2026')
+      })
+      el['cl-log-build'].addEventListener('click', function () { classicLogView('build') })
+      el['cl-log-fetch'].addEventListener('click', function () { classicLogView('fetch') })
+      el['cl-log-tc'].addEventListener('click', function () { classicLogView('tc') })
+      el['cl-log-term'].addEventListener('click', function () { classicLogView('terminal') })
+    }
 
     window.addEventListener('beforeunload', function (event) {
       if (dirty) {
