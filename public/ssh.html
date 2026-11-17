@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <title>SSH setup &mdash; BB10 / PlayBook App Manager</title>
+  <script>
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed')
+    }
+  </script>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ssh.css?v=4">
+</head>
+
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <main class="shell">
+    <header class="ssh-top">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>term49-web</span>
+        <h1>SSH <span class="grad">setup</span></h1>
+        <p class="sub" id="head-host">Loading device&hellip;</p>
+      </div>
+      <div class="ssh-top-actions">
+        <a class="back-link" href="index.html">&larr; Devices</a>
+        <a class="back-link" id="device-link" href="index.html">App manager</a>
+      </div>
+    </header>
+
+    <section class="card ssh-card" id="banner-card" hidden>
+      <p id="banner" class="ssh-banner"></p>
+    </section>
+
+    <section class="card ssh-card">
+      <div class="card-head">
+        <div>
+          <h2>term49-web connection</h2>
+          <p class="card-sub">The panel runs commands through the terminal already running on the device.</p>
+        </div>
+        <span class="badge" id="conn-state">Connecting&hellip;</span>
+      </div>
+      <div class="actions">
+        <button type="button" id="reconnect" class="primary">Reconnect</button>
+      </div>
+      <pre class="ssh-code" id="term-hint">Start it in Term49 on the device:
+
+  qpkg install term49-web
+  term49-web
+
+Then check: netstat -an | grep 7681</pre>
+    </section>
+
+    <section class="card ssh-card">
+      <div class="card-head">
+        <div>
+          <h2>Server status</h2>
+          <p class="card-sub">All SSH files live in Term49's own home, not in the Wi-Fi-visible share.</p>
+        </div>
+      </div>
+      <div class="ssh-grid">
+        <div><span>Term49 home</span><code id="st-home">&mdash;</code></div>
+        <div><span>SSH directory</span><code id="st-dir">&mdash;</code></div>
+        <div><span>Host key</span><code id="st-hostkey">&mdash;</code></div>
+        <div><span>Authorized keys</span><code id="st-keys">&mdash;</code></div>
+        <div><span>sshd on 2022</span><code id="st-sshd">&mdash;</code></div>
+        <div><span>Auto-start</span><code id="st-auto">&mdash;</code></div>
+      </div>
+      <div class="actions ssh-actions">
+        <button type="button" id="refresh" class="primary">Refresh</button>
+        <button type="button" id="start" class="primary">Start sshd</button>
+        <button type="button" id="stop" class="primary">Stop sshd</button>
+        <button type="button" id="auto-on" class="primary">Enable auto-start</button>
+        <button type="button" id="auto-off" class="primary">Disable auto-start</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card">
+      <h2>Client connection</h2>
+      <p class="card-sub">Copy this into your PC's <code>~/.ssh/config</code>. Adjust the identity file to the private key
+        that matches an authorized key below.</p>
+      <pre class="ssh-code" id="client-config"></pre>
+      <div class="actions">
+        <button type="button" id="copy-config" class="primary">Copy config</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card">
+      <div class="card-head">
+        <div>
+          <h2>Authorized keys</h2>
+          <p class="card-sub">Keys are kept in Term49's <code>~/.ssh/authorized_keys</code>. Changes are backed up first.</p>
+        </div>
+        <button type="button" id="refresh-keys" class="primary">Refresh keys</button>
+      </div>
+      <div id="key-list" class="ssh-key-list"></div>
+      <div class="ssh-divider"></div>
+      <p class="card-sub">Add a key, or paste a replacement key and use <strong>Replace</strong> on an existing entry.</p>
+      <textarea id="key-text" class="ssh-textarea" rows="4" spellcheck="false"
+        placeholder="ssh-rsa AAAAB3NzaC1yc2E... user@laptop"></textarea>
+      <div class="ssh-key-row">
+        <input id="key-file" type="file" accept=".pub,text/plain">
+        <button type="button" id="add-key" class="primary">Add key</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card">
+      <div class="card-head">
+        <div>
+          <h2>Output</h2>
+          <p class="card-sub">Raw output from the device shell.</p>
+        </div>
+        <button type="button" id="clear-log" class="primary">Clear</button>
+      </div>
+      <pre class="ssh-log" id="log"></pre>
+    </section>
+  </main>
+
+  <script src="ssh.js?v=4"></script>
+</body>
+
+</html>

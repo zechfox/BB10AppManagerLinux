@@ -35,6 +35,36 @@ password. The rest of the UI is the original app manager UI: list apps, install
 `.bar` files (drag and drop), launch, terminate and uninstall. The app list also has
 an **Export list** button that saves the installed apps as a CSV inventory.
 
+Inside a device, the left navigation has an **SSH** pane (next to Installed apps,
+Detail Device Info, Install logs and About). The same panel is also available
+standalone at `ssh.html`. It uses
+[term49-web](https://github.com/sw7ft/BerryCore) as the on-device shell:
+
+1. On the device, install and start it (it does not auto-start):
+   ```sh
+   qpkg install term49-web
+   term49-web
+   ```
+2. Open the SSH pane, add an OpenSSH public key, then **Start sshd**.
+3. Connect from your PC (the panel generates the client config):
+   ```sh
+   ssh -p 2022 -i ~/.ssh/id_rsa_bb10 blackberry@<host>
+   ```
+
+The panel discovers Term49's real sandbox through `$SANDBOX` (term49-web overrides
+`HOME`), and keeps SSH files in Term49's own home (`$SANDBOX/data/.ssh`), which is not
+exposed through Wi-Fi Storage. It installs a small helper script there on first use.
+Authorized keys are listed with fingerprints and can be added, replaced or revoked
+(keys are backed up before changes). The client config is shown on the page with the
+legacy `ssh-rsa` options. **Enable auto-start** calls BerryCore's `settings sshd-on`,
+so sshd starts on the next Term49 login.
+
+> **Security:** term49-web is an unauthenticated terminal. The SSH panel proxies it
+> through this local app and validates the WebSocket origin, but the app still only
+> listens on `127.0.0.1` by default. Do not use `LISTEN_HOST=0.0.0.0` with this feature
+> unless you understand that anyone who can reach this app can run commands on the
+> device. term49-web itself should stay on a trusted LAN.
+
 You can also jump straight to a device:
 
 ```text
@@ -54,6 +84,9 @@ Browser  ──HTTP──▶  local Node proxy  ──HTTPS (TLS verification of
 
 - `server.js` serves `public/` and proxies `/proxy/<host>/cgi-bin/...` to
   `https://<host>/cgi-bin/...`.
+- For the SSH panel it also proxies `/term/<host>/...` and the `/term/<host>/ws`
+  WebSocket to term49-web at `http://<host>:7681` (same-origin, with Host/Origin
+  checks on the WebSocket upgrade).
 - `public/pb-apps.js` is the original device logic (login challenge, SHA-512
   key derivation, app list parsing, install queue), adapted only to:
   - use the `/proxy/<host>` prefix,
@@ -81,6 +114,11 @@ Only the network layer changed; app management behaviour is unchanged.
 - Device status (battery / free space) is only shown for USB addresses
   (`169.254.x.x`), same as the original.
 - Closing the Node process clears login sessions and requires logging in again.
+- The SSH panel requires `term49-web` to be running on the device, and term49-web
+  has no boot autostart; start it in Term49 after each reboot. Auto-start (`settings
+  sshd-on`) starts sshd on the next Term49 login, not at device boot.
+- SSH keys live in Term49's real home (`$SANDBOX/data/.ssh`) and are managed through
+  term49-web; they are not reachable over Wi-Fi Storage.
 
 ## Credits
 

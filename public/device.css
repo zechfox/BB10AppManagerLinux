@@ -538,6 +538,38 @@
   display: none;
 }
 
+.pb-ui #pane-ssh {
+  display: none;
+  height: calc(100vh - 210px);
+  min-height: 480px;
+}
+
+.pb-ui .content.showing-ssh #pane-ssh {
+  display: block;
+}
+
+.pb-ui .content.showing-ssh #pane-apps,
+.pb-ui .content.showing-ssh pre#news,
+.pb-ui .content.showing-output #pane-ssh {
+  display: none;
+}
+
+.pb-ui #pane-ssh iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .pb-ui #pane-ssh {
+    height: calc(100vh - 240px);
+    min-height: 420px;
+  }
+}
+
 .pb-ui .apps-toolbar {
   margin-bottom: 12px;
   text-align: right;

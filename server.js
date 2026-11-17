@@ -3,6 +3,7 @@
 
 const http = require('http')
 const https = require('https')
+const net = require('net')
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
@@ -11,11 +12,13 @@ const PORT = Number(process.env.PORT || 8810)
 const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1'
 const PUBLIC_DIR = path.join(__dirname, 'public')
 const DEVICE_USER_AGENT = 'QNXWebClient/1.0'
+const TERM49_WEB_PORT = 7681
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
+  '.sh': 'text/plain; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -90,6 +93,204 @@ function parseProxyTarget (url) {
   if (!host) return { error: 'Missing device host' }
   if (!/^[A-Za-z0-9._:[\]-]+$/.test(host)) return { error: 'Invalid device host' }
   return { host, targetPath }
+}
+
+function parseTermTarget (url) {
+  const prefix = '/term/'
+  if (!url.startsWith(prefix)) return null
+  const rest = url.slice(prefix.length)
+  const slash = rest.indexOf('/')
+  const encodedHost = slash < 0 ? rest : rest.slice(0, slash)
+  const targetPath = slash < 0 ? '/' : rest.slice(slash)
+  let host
+  try {
+    host = decodeURIComponent(encodedHost)
+  } catch (err) {
+    return { error: 'Invalid host encoding' }
+  }
+  if (!host) return { error: 'Missing device host' }
+  if (!/^[A-Za-z0-9._:[\]-]+$/.test(host)) return { error: 'Invalid device host' }
+  return { host, targetPath }
+}
+
+function hostnameFromHostHeader (value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.startsWith('[')) {
+    const end = raw.indexOf(']')
+    return end >= 0 ? raw.slice(0, end) : raw
+  }
+  const first = raw.indexOf(':')
+  const last = raw.lastIndexOf(':')
+  if (first > 0 && first === last) return raw.slice(0, first)
+  return raw
+}
+
+function isAllowedLocalHost (req) {
+  const name = hostnameFromHostHeader(req.headers.host).toLowerCase()
+  const allow = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
+  if (LISTEN_HOST !== '0.0.0.0' && LISTEN_HOST !== '::') {
+    allow.add(String(LISTEN_HOST).toLowerCase())
+  }
+  if (allow.has(name)) return true
+  return LISTEN_HOST === '0.0.0.0' || LISTEN_HOST === '::'
+}
+
+function isSameOrigin (origin, hostHeader) {
+  try {
+    const parsed = new URL(origin)
+    return parsed.host.toLowerCase() === String(hostHeader || '').toLowerCase()
+  } catch (err) {
+    return false
+  }
+}
+
+function proxyTermRequest (req, res, target) {
+  if (!isAllowedLocalHost(req)) {
+    res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('Forbidden')
+    return
+  }
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { 'content-type': 'text/plain; charset=utf-8', allow: 'GET, HEAD' })
+    res.end('Method not allowed')
+    return
+  }
+
+  const { host, targetPath } = target
+  const hostname = host.replace(/^\[|\]$/g, '')
+
+  const headers = Object.assign({}, req.headers)
+  delete headers.cookie
+  delete headers.origin
+  delete headers.referer
+  headers.host = host + ':' + TERM49_WEB_PORT
+  headers.connection = 'close'
+
+  let proxyReq
+  try {
+    proxyReq = http.request({
+      hostname,
+      port: TERM49_WEB_PORT,
+      method: req.method,
+      path: targetPath,
+      headers
+    }, (proxyRes) => {
+      const outHeaders = Object.assign({}, proxyRes.headers)
+      delete outHeaders.connection
+      delete outHeaders['keep-alive']
+      delete outHeaders['transfer-encoding']
+      res.writeHead(proxyRes.statusCode || 502, proxyRes.statusMessage, outHeaders)
+      proxyRes.pipe(res)
+      proxyRes.on('error', () => res.destroy())
+    })
+  } catch (err) {
+    res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('Terminal proxy setup failed: ' + err.message)
+    return
+  }
+
+  proxyReq.setTimeout(8000, () => proxyReq.destroy(new Error('timeout')))
+  proxyReq.on('error', (err) => {
+    if (!res.headersSent) {
+      res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
+    }
+    res.end('Could not reach term49-web on ' + host + ':' + TERM49_WEB_PORT + ': ' + err.message)
+  })
+  proxyReq.end()
+}
+
+function handleTermUpgrade (req, socket, head) {
+  const target = parseTermTarget(req.url || '')
+  if (!target || target.error) {
+    socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+  if (target.targetPath !== '/ws' && target.targetPath !== '/ws/') {
+    socket.write('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+  if (!isAllowedLocalHost(req)) {
+    socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+  if (req.headers.origin && !isSameOrigin(req.headers.origin, req.headers.host)) {
+    socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+
+  const hostname = target.host.replace(/^\[|\]$/g, '')
+  let upstream
+  try {
+    upstream = net.connect(TERM49_WEB_PORT, hostname)
+  } catch (err) {
+    socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+  let connected = false
+
+  upstream.setNoDelay(true)
+  upstream.setTimeout(10000, () => upstream.destroy(new Error('timeout')))
+
+  upstream.on('connect', () => {
+    connected = true
+    upstream.setTimeout(0)
+
+    const wsKey = String(req.headers['sec-websocket-key'] || '')
+    const wsVersion = String(req.headers['sec-websocket-version'] || '13')
+    if (!wsKey) {
+      upstream.destroy()
+      socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
+      socket.destroy()
+      return
+    }
+
+    const targetHost = target.host + ':' + TERM49_WEB_PORT
+    const lines = [
+      'GET /ws HTTP/1.1',
+      'Host: ' + targetHost,
+      'Upgrade: websocket',
+      'Connection: Upgrade',
+      'Sec-WebSocket-Key: ' + wsKey,
+      'Sec-WebSocket-Version: ' + wsVersion,
+      'Origin: http://' + targetHost
+    ]
+    if (req.headers['sec-websocket-protocol']) {
+      lines.push('Sec-WebSocket-Protocol: ' + req.headers['sec-websocket-protocol'])
+    }
+    if (req.headers['user-agent']) {
+      lines.push('User-Agent: ' + req.headers['user-agent'])
+    }
+    lines.push('', '')
+
+    upstream.write(lines.join('\r\n'))
+    if (head && head.length) upstream.write(head)
+
+    upstream.pipe(socket)
+    socket.pipe(upstream)
+  })
+
+  upstream.on('error', (err) => {
+    if (!socket.destroyed) {
+      if (!connected) {
+        socket.write(
+          'HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n' +
+          'Could not reach term49-web on ' + target.host + ':' + TERM49_WEB_PORT + '. ' +
+          'Start it on the device with: term49-web'
+        )
+      }
+      socket.destroy()
+    }
+  })
+
+  socket.on('error', () => upstream.destroy())
+  socket.on('close', () => upstream.destroy())
+  upstream.on('close', () => socket.destroy())
 }
 
 function setCors (headers) {
@@ -238,7 +439,29 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  if (pathname.startsWith('/term/')) {
+    const target = parseTermTarget(fullUrl)
+    if (!target || target.error) {
+      res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end(target ? target.error : 'Bad terminal URL')
+      return
+    }
+    proxyTermRequest(req, res, target)
+    return
+  }
+
   handleStatic(req, res, pathname)
+})
+
+server.on('upgrade', (req, socket, head) => {
+  const fullUrl = req.url || '/'
+  const queryIndex = fullUrl.indexOf('?')
+  const pathname = queryIndex < 0 ? fullUrl : fullUrl.slice(0, queryIndex)
+  if (pathname.startsWith('/term/')) {
+    handleTermUpgrade(req, socket, head)
+    return
+  }
+  socket.destroy()
 })
 
 server.listen(PORT, LISTEN_HOST, () => {
