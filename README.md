@@ -35,9 +35,9 @@ password. The rest of the UI is the original app manager UI: list apps, install
 `.bar` files (drag and drop), launch, terminate and uninstall. The app list also has
 an **Export list** button that saves the installed apps as a CSV inventory.
 
-Inside a device, the left navigation has an **SSH** pane (next to Installed apps,
-Detail Device Info, Install logs and About). The same panel is also available
-standalone at `ssh.html`. It uses
+Inside a device, the left navigation has **SSH**, **Term49** and **Tmux** panes (next
+to Installed apps, Detail Device Info, Install logs and About). The SSH panel is also
+available standalone at `ssh.html`. All three use
 [term49-web](https://github.com/sw7ft/BerryCore) as the on-device shell:
 
 1. On the device, install and start it (it does not auto-start):
@@ -69,6 +69,16 @@ backup first. Term49 only exposes default text and background colors, so the ANS
 palette used by `ls`, `git` and editors stays fixed. Close and reopen Term49 to apply
 changes. Like the SSH pane, this requires term49-web to be running. The page is also
 available standalone as `term49.html?host=<host>`.
+
+The **Tmux** pane edits `~/.tmux.conf` in the same Term49 home. It sets the prefix key,
+mouse events, history limit, base indexes, window renumbering, status bar and copy-mode
+keys inside a managed block, leaving the rest of the file untouched. Saving backs up
+the previous file as `.tmux.conf.bak`; **Apply to running tmux** reloads it with
+`tmux source-file` when the server is running in that home. Install tmux on the device
+with `qpkg install tmux`; the pane is also available standalone as
+`tmux.html?host=<host>`. Term49 forwards taps and drags but not wheel events, so touch
+swipes and the Passport trackpad do not scroll tmux; the pane documents using copy
+mode with `j`/`k` or the arrow keys instead.
 
 > **Security:** term49-web is an unauthenticated terminal. The SSH panel proxies it
 > through this local app and validates the WebSocket origin, but the app still only
@@ -125,9 +135,10 @@ Only the network layer changed; app management behaviour is unchanged.
 - Device status (battery / free space) is only shown for USB addresses
   (`169.254.x.x`), same as the original.
 - Closing the Node process clears login sessions and requires logging in again.
-- The SSH and Term49 panels require `term49-web` to be running on the device, and
-  term49-web has no boot autostart; start it in Term49 after each reboot. Auto-start
-  (`settings sshd-on`) starts sshd on the next Term49 login, not at device boot.
+- The SSH, Term49 and Tmux panels require `term49-web` to be running on the device,
+  and term49-web has no boot autostart; start it in Term49 after each reboot.
+  Auto-start (`settings sshd-on`) starts sshd on the next Term49 login, not at device
+  boot. The Tmux pane also needs `qpkg install tmux`.
 - The Term49 pane edits the active config (`.term49rc`, or `.term48rc` on BerryCore's
   Term49 package) inside Term49's sandbox. It cannot change the compiled 256-color ANSI
   palette; use a themeable browser terminal if you need that.

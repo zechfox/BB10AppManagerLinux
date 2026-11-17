@@ -1,0 +1,44 @@
+.tmux-session-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.tmux-session-list[hidden] {
+  display: none;
+}
+
+.tmux-session {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.tmux-session-none {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tmux-steps {
+  margin: 14px 0 0;
+  padding-left: 22px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+.tmux-steps li + li {
+  margin-top: 6px;
+}
+
+.tmux-steps code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}

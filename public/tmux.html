@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <title>Tmux settings &mdash; BB10 / PlayBook App Manager</title>
+  <script>
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed')
+    }
+  </script>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="term49.css?v=1">
+  <link rel="stylesheet" href="tmux.css?v=1">
+</head>
+
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <main class="shell">
+    <header class="term-top">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>term49-web</span>
+        <h1>Tmux <span class="grad">configuration</span></h1>
+        <p class="sub" id="head-host">Loading device&hellip;</p>
+      </div>
+      <div class="term-top-actions">
+        <a class="back-link" href="index.html">&larr; Devices</a>
+        <a class="back-link" id="device-link" href="index.html">App manager</a>
+      </div>
+    </header>
+
+    <section class="card term-card" id="banner-card" hidden>
+      <p id="banner" class="term-banner"></p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Device connection</h2>
+          <p class="card-sub">Reads and writes <code>~/.tmux.conf</code> through the shell exposed by term49-web.</p>
+        </div>
+        <span class="badge" id="conn-state">Connecting&hellip;</span>
+      </div>
+      <pre class="term-code" id="term-hint">Start it in Term49 on the device:
+
+  qpkg install term49-web
+  term49-web
+
+Then open this pane again.</pre>
+      <div class="term-meta-grid">
+        <div><span>Term49 home</span><code id="st-home">&mdash;</code></div>
+        <div><span>tmux</span><code id="st-tmux">&mdash;</code></div>
+        <div><span>Config file</span><code id="st-config">&mdash;</code></div>
+        <div><span>File state</span><code id="st-state">&mdash;</code></div>
+        <div><span>Size</span><code id="st-size">&mdash;</code></div>
+        <div><span>Server</span><code id="st-server">&mdash;</code></div>
+      </div>
+      <div id="session-list" class="tmux-session-list" hidden></div>
+      <div class="actions">
+        <button type="button" id="reconnect" class="primary">Reconnect</button>
+        <button type="button" id="reload" class="ghost">Reload from device</button>
+        <button type="button" id="apply" class="ghost">Apply to running tmux</button>
+      </div>
+      <p class="term-note">Install tmux with <code>qpkg install tmux</code>. The server must run in the same
+        Term49 home for <strong>Apply</strong> to reload it; otherwise reopen tmux after saving.</p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Behavior</h2>
+          <p class="card-sub">These settings go into a managed block at the end of <code>~/.tmux.conf</code>; other
+            lines are preserved.</p>
+        </div>
+      </div>
+      <div class="term-toggle-list">
+        <label class="term-toggle">
+          <input type="checkbox" id="mouse">
+          <span><strong>Mouse events (tap and drag)</strong><small>Lets taps and drags select panes and text when
+              Term49 forwards them. Touch swipes and the Passport trackpad are not wheel events, so they do not
+              scroll tmux.</small></span>
+        </label>
+        <label class="term-toggle">
+          <input type="checkbox" id="base-index">
+          <span><strong>Number windows from 1</strong><small>Uses base index 1 for windows and panes.</small></span>
+        </label>
+        <label class="term-toggle">
+          <input type="checkbox" id="renumber-windows">
+          <span><strong>Renumber windows</strong><small>Closes the gaps when a window is removed.</small></span>
+        </label>
+        <label class="term-toggle">
+          <input type="checkbox" id="status-bar">
+          <span><strong>Show the status bar</strong><small>Shows windows, the session name and the clock.</small></span>
+        </label>
+      </div>
+      <div class="term-color-row">
+        <label class="term-field">
+          <span>Prefix key</span>
+          <select id="prefix">
+            <option value="C-b">Ctrl+b (default)</option>
+            <option value="C-a">Ctrl+a</option>
+            <option value="C-Space">Ctrl+Space</option>
+          </select>
+        </label>
+        <label class="term-field">
+          <span>History limit</span>
+          <input type="number" id="history" min="0" max="1000000" step="500" value="2000">
+        </label>
+      </div>
+      <div class="term-color-row">
+        <label class="term-field">
+          <span>Status bar position</span>
+          <select id="status-position">
+            <option value="bottom">Bottom</option>
+            <option value="top">Top</option>
+          </select>
+        </label>
+        <label class="term-field">
+          <span>Copy-mode keys</span>
+          <select id="mode-keys">
+            <option value="emacs">Emacs (default)</option>
+            <option value="vi">vi</option>
+          </select>
+        </label>
+      </div>
+      <p class="term-note">On Term49, tap the top-left corner or hold Space for metamode: <code>c</code> acts as
+        Ctrl, so <code>c</code> then the prefix key works on a touchscreen.</p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Scrolling on a touchscreen</h2>
+          <p class="card-sub">Term49 forwards taps and drags but not wheel events, so swipes and the trackpad cannot
+            scroll tmux. Use copy mode with keys instead.</p>
+        </div>
+      </div>
+      <ol class="tmux-steps">
+        <li>Tap the top-left corner in Term49 (or hold Space) to enter metamode.</li>
+        <li>Press <code>c</code> for Ctrl, then the prefix key, then <code>[</code> to enter copy mode.</li>
+        <li>Use <code>j</code>/<code>k</code> or the arrow keys on the physical or on-screen keyboard to scroll.
+          Press <code>q</code> to leave copy mode.</li>
+      </ol>
+      <p class="term-note">In vi copy-mode, <code>h</code>/<code>j</code>/<code>k</code>/<code>l</code> move like
+        arrows. The pane status shows <code>[0/0]</code> while copy mode is active.</p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Write configuration</h2>
+          <p class="card-sub">Saving writes <code>~/.tmux.conf</code> and backs up the previous file as
+            <code>.tmux.conf.bak</code>.</p>
+        </div>
+      </div>
+      <div class="actions term-save-actions">
+        <button type="button" id="save" class="primary">Save to ~/.tmux.conf</button>
+        <button type="button" id="copy-config" class="ghost">Copy config</button>
+        <span class="term-save-note" id="save-note"></span>
+      </div>
+      <p class="term-note">tmux reads this file when the server starts. Use <strong>Apply to running tmux</strong>
+        above to reload an active server.</p>
+      <details class="term-advanced">
+        <summary>Advanced: edit the raw config</summary>
+        <p class="term-note">A managed block at the end is regenerated from the form. Everything outside it is
+          preserved.</p>
+        <textarea id="advanced-config" spellcheck="false" rows="14"></textarea>
+        <div class="actions">
+          <button type="button" id="save-raw" class="ghost">Save raw config</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Output</h2>
+          <p class="card-sub">Raw output from the device shell.</p>
+        </div>
+        <button type="button" id="clear-log" class="ghost">Clear</button>
+      </div>
+      <pre class="term-log" id="log"></pre>
+    </section>
+  </main>
+
+  <script src="tmux.js?v=1"></script>
+</body>
+
+</html>
