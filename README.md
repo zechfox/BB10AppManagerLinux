@@ -35,9 +35,9 @@ password. The rest of the UI is the original app manager UI: list apps, install
 `.bar` files (drag and drop), launch, terminate and uninstall. The app list also has
 an **Export list** button that saves the installed apps as a CSV inventory.
 
-Inside a device, the left navigation has **SSH**, **Term49** and **Tmux** panes (next
-to Installed apps, Detail Device Info, Install logs and About). The SSH panel is also
-available standalone at `ssh.html`. All three use
+Inside a device, the left navigation has **SSH**, **Term49**, **Tmux** and **Pi agent**
+panes (next to Installed apps, Detail Device Info, Install logs and About). The SSH
+panel is also available standalone at `ssh.html`. All four use
 [term49-web](https://github.com/sw7ft/BerryCore) as the on-device shell:
 
 1. On the device, install and start it (it does not auto-start):
@@ -70,6 +70,32 @@ palette used by `ls`, `git` and editors stays fixed. Close and reopen Term49 to 
 changes. Like the SSH pane, this requires term49-web to be running. The page is also
 available standalone as `term49.html?host=<host>`.
 
+The Term49 pane also manages the
+[bb10-classic-toolkit](https://github.com/wesley138cn/bb10-classic-toolkit) **Term49
+Classic companion**: an on-device rebuild of Term49 with 4,096-line scrollback and a
+terminal-local Pinyin IME, attached to the signed Term49's window group (nothing
+signed is modified; rollback is removing one marker file). The pane stages the
+BerryCore GCC toolchain (a one-time 108 MB download, hash-verified and registered
+with `qpkg`), fetches the toolkit source and hash-pinned dependencies, compiles on
+the device, installs the runtime files and toggles the guarded `.profile` auto-start
+hook. When the companion is active the pane edits `.term49cjkrc` (the companion's
+own config) instead of `.term49rc`/`.term48rc`.
+
+The **Pi agent** pane deploys the toolkit's
+[pi-classic](https://github.com/wesley138cn/bb10-classic-toolkit/tree/main/pi-classic):
+Pi 0.74.2 adapted to BerryCore's QNX Node port (`--jitless`, no WebAssembly, curl
+transport). The runtime package is built on the host with
+`tools/build-pi-package.sh` (Node 22+ and network required; produces
+`var/artifacts/pi-package.zip` plus a `.sha256` sidecar) and pulled by the device
+from the app's `/artifacts/` endpoint — start the app with `LISTEN_HOST=0.0.0.0`
+and allow the port in the host firewall. The pane then verifies and installs the
+pinned private Node, unpacks the package tree, installs the toolkit's adapter
+scripts, the `pi` launcher and the backup guard extension, and writes provider
+credentials. Multiple providers are supported (one endpoint/key per vendor,
+switchable inside Pi with `/model`); an existing configuration is loaded into the
+pane for editing, and replacing it keeps a timestamped `.bak`. API keys are stored
+only on the device.
+
 The **Tmux** pane edits `~/.tmux.conf` in the same Term49 home. It sets the prefix key,
 mouse events, history limit, base indexes, window renumbering, status bar and copy-mode
 keys inside a managed block, leaving the rest of the file untouched. Saving backs up
@@ -84,7 +110,10 @@ mode with `j`/`k` or the arrow keys instead.
 > through this local app and validates the WebSocket origin, but the app still only
 > listens on `127.0.0.1` by default. Do not use `LISTEN_HOST=0.0.0.0` with this feature
 > unless you understand that anyone who can reach this app can run commands on the
-> device. term49-web itself should stay on a trusted LAN.
+> device. term49-web itself should stay on a trusted LAN. The Pi pane additionally
+> requires `LISTEN_HOST=0.0.0.0` while pulling packages; `/artifacts/` serves only
+> files from `var/artifacts/` (GET only, no listing), but anyone on the network can
+> download them, so build only packages you are fine sharing.
 
 You can also jump straight to a device:
 
@@ -135,12 +164,20 @@ Only the network layer changed; app management behaviour is unchanged.
 - Device status (battery / free space) is only shown for USB addresses
   (`169.254.x.x`), same as the original.
 - Closing the Node process clears login sessions and requires logging in again.
-- The SSH, Term49 and Tmux panels require `term49-web` to be running on the device,
-  and term49-web has no boot autostart; start it in Term49 after each reboot.
+- The SSH, Term49, Tmux and Pi panels require `term49-web` to be running on the
+  device, and term49-web has no boot autostart; start it in Term49 after each reboot.
   Auto-start (`settings sshd-on`) starts sshd on the next Term49 login, not at device
   boot. The Tmux pane also needs `qpkg install tmux`.
-- The Term49 pane edits the active config (`.term49rc`, or `.term48rc` on BerryCore's
-  Term49 package) inside Term49's sandbox. It cannot change the compiled 256-color ANSI
+- The Term49 Classic companion needs the BerryCore GCC toolchain on the device (the
+  pane installs it; ~108 MB, one-time) and compiles on the device, which takes
+  roughly 15 minutes on a Classic. Guard and provider installation write into the
+  sandbox of the terminal that runs term49-web.
+- The Pi pane's runtime step needs a host-built package (`tools/build-pi-package.sh`)
+  served over HTTP; device-side downloads (node zip, toolkit source) retry with
+  resume but can be slow on the device's link.
+- The Term49 pane edits the active config (`.term49rc`, `.term48rc` on BerryCore's
+  Term49 package, or `.term49cjkrc` when the Classic companion auto-start is
+  enabled) inside Term49's sandbox. It cannot change the compiled 256-color ANSI
   palette; use a themeable browser terminal if you need that.
 - SSH keys live in Term49's real home (`$SANDBOX/data/.ssh`) and are managed through
   term49-web; they are not reachable over Wi-Fi Storage.
