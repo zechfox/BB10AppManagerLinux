@@ -291,15 +291,39 @@ do_install () {
   cp "$WORK/toolkit/term49/launch-attached.py" "$C/launch-attached.py"
   cp "$WORK/toolkit/term49/start-cjk.sh" "$C/start-cjk.sh"
   chmod +x "$C/start-cjk.sh"
-  # BerryCore's Term49 package runs as com.update.Term49, not com.example.Term49.
-  case "$SD" in
-    *com.update.Term49*)
-      if ! grep -q "com.update.Term49." "$C/launch-attached.py"; then
-        sed -i "s/com\.example\.Term49\./com.update.Term49./g" "$C/launch-attached.py"
-        say "Patched launcher for com.update.Term49 (BerryCore package name)."
-      fi
-      ;;
-  esac
+  # Accept both package names: BerryFarm ships com.example.Term49, BerryCore's
+  # Term48-based Term49 runs as com.update.Term49. $HOME/$SD are unreliable here
+  # (term49-web may override HOME with a foreign sandbox), so patch unconditionally.
+  if ! grep -q "com.update.Term49." "$C/launch-attached.py"; then
+    sed -i "s/startswith('com\.example\.Term49\.')/startswith(('com.example.Term49.', 'com.update.Term49.'))/g" "$C/launch-attached.py"
+    grep -q "com.update.Term49." "$C/launch-attached.py" \
+      || say "WARNING: launcher patch did not apply; BerryCore Term49 would be refused."
+    say "Patched launcher to accept com.example.Term49 and com.update.Term49."
+  fi
+  # After a reboot the navigator PPS state can take well over the upstream 3 s
+  # to become ready; widen the foreground poll to 30 s.
+  if grep -q "range(12)" "$C/launch-attached.py"; then
+    sed -i "s/range(12)/range(60)/; s/time\.sleep(0\.25)/time.sleep(0.5)/" "$C/launch-attached.py"
+    say "Widened launcher foreground poll to 30 s (slow boots)."
+  fi
+  # term49-web may override HOME with a dead/foreign sandbox path; resolve the
+  # companion cwd from SANDBOX first and fall back instead of crashing.
+  if ! grep -q "SANDBOX,'')+'/data'" "$C/launch-attached.py"; then
+    cat > "$WORK/cwdpatch.py" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = "cwd=os.path.expanduser('~')"
+new = "cwd=os.path.isdir(os.environ.get('SANDBOX','')+'/data') and os.environ.get('SANDBOX','')+'/data' or (os.path.isdir(os.path.expanduser('~')) and os.path.expanduser('~')) or '/accounts/1000/shared/misc/term49-cjk'"
+if old in s and new not in s:
+    s = s.replace(old, new)
+    open(p, 'w').write(s)
+    print('Patched launcher cwd to resolve from SANDBOX with fallbacks.')
+else:
+    print('Launcher cwd already robust or pattern changed.')
+PYEOF
+    LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/cwdpatch.py" "$C/launch-attached.py"
+  fi
   : > "$I/enabled"
   # Companion config: copy the active terminal config once, swap the font.
   if [ ! -f "$SD/.term49cjkrc" ]; then
