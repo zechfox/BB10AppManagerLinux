@@ -5,6 +5,9 @@
 CLASSIC_HELPER_VERSION=1
 
 N="${NATIVE_TOOLS:-/accounts/1000/shared/misc/berrycore}"
+# Real Term49 home: $SANDBOX/data when term49-web provides SANDBOX, else $HOME.
+SD="${SANDBOX:+$SANDBOX/data}"
+[ -n "$SD" ] || SD="$HOME"
 WORK=/accounts/1000/shared/misc/term49-build
 C=/accounts/1000/shared/misc/term49-cjk
 I=/accounts/1000/shared/misc/term49-ime
@@ -79,7 +82,7 @@ start_job () {
 do_status () {
   say "CLASSIC_HELPER_VERSION=$CLASSIC_HELPER_VERSION"
   say "WORK=$WORK"
-  say "HOME=$HOME"
+  say "HOME=$SD"
   if [ -x "$N/bin/gcc" ] && [ -d "$N/target_10_3_1_995/qnx6/usr/include" ]; then
     say "TOOLCHAIN=1"
   else
@@ -114,7 +117,7 @@ do_status () {
     say "RUNTIME=0"
   fi
   [ -f "$C/enabled" ] && say "AUTO=1" || say "AUTO=0"
-  grep -q "term49-cjk/enabled" "$HOME/.profile" 2>/dev/null && say "HOOK=1" || say "HOOK=0"
+  grep -q "term49-cjk/enabled" "$SD/.profile" 2>/dev/null && say "HOOK=1" || say "HOOK=0"
   if [ -f "$C/terminal.pid" ]; then
     PID=$(cat "$C/terminal.pid" 2>/dev/null)
     if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
@@ -289,7 +292,7 @@ do_install () {
   cp "$WORK/toolkit/term49/start-cjk.sh" "$C/start-cjk.sh"
   chmod +x "$C/start-cjk.sh"
   # BerryCore's Term49 package runs as com.update.Term49, not com.example.Term49.
-  case "$HOME" in
+  case "$SD" in
     *com.update.Term49*)
       if ! grep -q "com.update.Term49." "$C/launch-attached.py"; then
         sed -i "s/com\.example\.Term49\./com.update.Term49./g" "$C/launch-attached.py"
@@ -299,19 +302,19 @@ do_install () {
   esac
   : > "$I/enabled"
   # Companion config: copy the active terminal config once, swap the font.
-  if [ ! -f "$HOME/.term49cjkrc" ]; then
-    if [ -f "$HOME/.term49rc" ]; then SRCRC="$HOME/.term49rc"
-    elif [ -f "$HOME/.term48rc" ]; then SRCRC="$HOME/.term48rc"
+  if [ ! -f "$SD/.term49cjkrc" ]; then
+    if [ -f "$SD/.term49rc" ]; then SRCRC="$SD/.term49rc"
+    elif [ -f "$SD/.term48rc" ]; then SRCRC="$SD/.term48rc"
     else SRCRC=""
     fi
     if [ -n "$SRCRC" ]; then
-      sed "s|^font_path = .*|font_path = \"$C/NotoSansMonoCJKsc-Regular.otf\";|" "$SRCRC" > "$HOME/.term49cjkrc"
+      sed "s|^font_path = .*|font_path = \"$C/NotoSansMonoCJKsc-Regular.otf\";|" "$SRCRC" > "$SD/.term49cjkrc"
     else
       {
         say "font_path = \"$C/NotoSansMonoCJKsc-Regular.otf\";"
         say "font_size = 14;"
         say "tty_encoding = \"UTF-8\";"
-      } > "$HOME/.term49cjkrc"
+      } > "$SD/.term49cjkrc"
     fi
     say "Created .term49cjkrc with the Noto CJK font."
   fi
@@ -322,10 +325,11 @@ do_install () {
 HOOK_MARKER="# Term49 Classic companion"
 do_enable () {
   [ -f "$I/Term49-IME" ] || die "not installed yet (run Install first)"
+  [ -d "$SD" ] && [ -w "$SD" ] || die "Term49 home is not writable: $SD (start term49-web from Term49)"
   : > "$C/enabled"
-  if ! grep -q "$HOOK_MARKER" "$HOME/.profile" 2>/dev/null; then
-    [ -f "$HOME/.profile.before-term49-classic" ] || cp -p "$HOME/.profile" "$HOME/.profile.before-term49-classic"
-    cat >> "$HOME/.profile" <<'PROFEOF'
+  if ! grep -q "$HOOK_MARKER" "$SD/.profile" 2>/dev/null; then
+    [ -f "$SD/.profile.before-term49-classic" ] || cp -p "$SD/.profile" "$SD/.profile.before-term49-classic"
+    cat >> "$SD/.profile" <<'PROFEOF'
 
 # Term49 Classic companion (scrollback + IME); remove term49-cjk/enabled to disable
 if [ -t 0 ] && [ -z "${TERM49_CJK-}" ] && [ -f /accounts/1000/shared/misc/term49-cjk/enabled ]; then
