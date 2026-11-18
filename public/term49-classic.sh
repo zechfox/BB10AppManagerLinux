@@ -342,7 +342,7 @@ if old in s and 'guard.log' not in s:
 else:
     print('guard logging already present or pattern changed')
 cond_old = "if app and app.group(1).startswith(('com.example.Term49.', 'com.update.Term49.')) and pid and pid.group(1)!='0':break"
-cond_new = "if app and pid and pid.group(1)!='0' and (app.group(1).startswith(('com.example.Term49.', 'com.update.Term49.')) or app.group(1)=='none'):break"
+cond_new = "if pid and pid.group(1)!='0':break"
 if cond_old in s:
     s = s.replace(cond_old, cond_new)
     open(p, 'w').write(s)
