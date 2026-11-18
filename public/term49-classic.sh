@@ -2,7 +2,7 @@
 # Term49 Classic companion manager. Managed by the BB10 App Manager web UI.
 # Installed into Term49's real home and run as: sh term49-classic.sh <action>
 # Builds/installs the bb10-classic-toolkit Term49 companion on-device.
-CLASSIC_HELPER_VERSION=3
+CLASSIC_HELPER_VERSION=4
 
 N="${NATIVE_TOOLS:-/accounts/1000/shared/misc/berrycore}"
 # Real Term49 home: $SANDBOX/data when term49-web provides SANDBOX, else $HOME.
@@ -372,6 +372,44 @@ else:
     print('already patched or pattern changed')
 PYEOF
     LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/grouppatch.py" "$C/launch-attached.py"
+  fi
+  # Replace the python launcher step with a pure-shell start: python 3.2 costs
+  # ~4 s per run on the device and the hook does not need to block on the
+  # companion. The WIDTH/HEIGHT defaults are required (SDL video mode).
+  if ! grep -q "TERM49_PARENT_GROUP=" "$C/start-cjk.sh"; then
+    cat > "$C/start-cjk.sh" <<'STARTEOF'
+#!/bin/sh
+cjk_root=/accounts/1000/shared/misc/term49-cjk
+case "${1-}" in
+  off) rm -f "$cjk_root/enabled"; echo "CJK auto-start disabled. Close and reopen Term49 for the original terminal."; exit 0 ;;
+  on)  : > "$cjk_root/enabled"; echo "CJK auto-start enabled."; exit 0 ;;
+esac
+if [ "${TERM49_CJK-}" = 1 ]; then echo "This terminal already uses CJK character widths."; exit 0; fi
+G="${TERM49_GROUP-}"
+if [ -z "$G" ]; then
+  FP=$(grep "^.*fullscreen" /pps/services/navigator/state 2>/dev/null | tr -dc 0-9)
+  [ -n "$FP" ] && [ "$FP" != "0" ] && G="SDL-window-$FP"
+fi
+if [ -z "$G" ]; then
+  echo "No fullscreen window yet; keep Term49 in the foreground and run term-cjk again."
+  exit 1
+fi
+I=/accounts/1000/shared/misc/term49-ime
+if [ -f "$I/enabled" ] && [ -f "$I/Term49-IME" ] && [ -f "$I/dict_pinyin.dat" ]; then
+  BIN="$I/Term49-IME"; TERM49_IME=1
+else
+  BIN="$cjk_root/Term49-CJK"; TERM49_IME=0
+fi
+export TERM49_CJK=1 TERM49_IME TERM49_PARENT_GROUP="$G" WIDTH="${WIDTH:-720}" HEIGHT="${HEIGHT:-720}"
+export LD_LIBRARY_PATH="$cjk_root/lib:/base/lib:/base/usr/lib"
+cd "$HOME" 2>/dev/null || cd "$cjk_root"
+: > "$cjk_root/terminal.log"
+nohup "$BIN" >> "$cjk_root/terminal.log" 2>&1 &
+echo $! > "$cjk_root/terminal.pid"
+echo "Companion started (pid $(cat "$cjk_root/terminal.pid"), group $G)."
+STARTEOF
+    chmod +x "$C/start-cjk.sh"
+    say "start-cjk.sh replaced with the pure-shell launcher (WIDTH/HEIGHT defaults included)."
   fi
   : > "$I/enabled"
   # Companion config: copy the active terminal config once, swap the font.
