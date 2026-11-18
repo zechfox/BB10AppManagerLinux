@@ -448,3 +448,66 @@ html.embed .term-card {
     width: 100%;
   }
 }
+/* Pi agent: provider list table */
+.pi-cfg-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.pi-cfg-table th {
+  text-align: left;
+  padding: 0 8px 6px 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted, #8a93a6);
+  white-space: nowrap;
+}
+
+.pi-cfg-table td {
+  padding: 4px 8px 4px 0;
+  vertical-align: top;
+}
+
+.pi-cfg-table input[type="text"],
+.pi-cfg-table input[type="password"] {
+  width: 100%;
+  min-width: 120px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  outline: none;
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.pi-cfg-table input[type="text"]:focus,
+.pi-cfg-table input[type="password"]:focus {
+  border-color: var(--brand);
+}
+
+.pi-cfg-table .pi-cfg-col-endpoint {
+  width: 34%;
+}
+
+.pi-cfg-table .pi-cfg-col-key {
+  width: 20%;
+}
+
+.pi-cfg-table .pi-cfg-del {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted, #8a93a6);
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pi-cfg-table .pi-cfg-del:hover {
+  color: #e5484d;
+  border-color: #e5484d;
+}

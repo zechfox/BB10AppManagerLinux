@@ -11,6 +11,7 @@ const path = require('path')
 const PORT = Number(process.env.PORT || 8810)
 const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1'
 const PUBLIC_DIR = path.join(__dirname, 'public')
+const ARTIFACTS_DIR = path.join(__dirname, 'var', 'artifacts')
 const DEVICE_USER_AGENT = 'QNXWebClient/1.0'
 const TERM49_WEB_PORT = 7681
 
@@ -399,6 +400,50 @@ function sendFile (res, filePath) {
   })
 }
 
+function sendArtifact (req, res, pathname) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { 'content-type': 'text/plain; charset=utf-8', allow: 'GET, HEAD' })
+    res.end('Method not allowed')
+    return
+  }
+  let rel = pathname.slice('/artifacts/'.length)
+  try {
+    rel = decodeURIComponent(rel)
+  } catch (err) {
+    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('Bad request')
+    return
+  }
+  if (!rel || rel.includes('..') || rel.includes('/') || rel.includes('\\')) {
+    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('Bad artifact name')
+    return
+  }
+  const filePath = path.join(ARTIFACTS_DIR, rel)
+  if (!filePath.startsWith(ARTIFACTS_DIR + path.sep)) {
+    res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('Forbidden')
+    return
+  }
+  fs.stat(filePath, (err, stat) => {
+    if (err || !stat.isFile()) {
+      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end('Artifact not found. Build it with tools/build-pi-package.sh.')
+      return
+    }
+    res.writeHead(200, {
+      'content-type': 'application/octet-stream',
+      'content-length': stat.size,
+      'cache-control': 'no-cache'
+    })
+    if (req.method === 'HEAD') {
+      res.end()
+      return
+    }
+    fs.createReadStream(filePath).pipe(res)
+  })
+}
+
 function handleStatic (req, res, pathname) {
   let rel = pathname === '/' ? '/index.html' : pathname
   try {
@@ -447,6 +492,11 @@ const server = http.createServer((req, res) => {
       return
     }
     proxyTermRequest(req, res, target)
+    return
+  }
+
+  if (pathname.startsWith('/artifacts/')) {
+    sendArtifact(req, res, pathname)
     return
   }
 

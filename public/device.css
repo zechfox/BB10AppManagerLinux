@@ -540,7 +540,8 @@
 
 .pb-ui #pane-ssh,
 .pb-ui #pane-term,
-.pb-ui #pane-tmux {
+.pb-ui #pane-tmux,
+.pb-ui #pane-pi {
   display: none;
   height: calc(100vh - 210px);
   min-height: 480px;
@@ -548,7 +549,8 @@
 
 .pb-ui .content.showing-ssh #pane-ssh,
 .pb-ui .content.showing-term #pane-term,
-.pb-ui .content.showing-tmux #pane-tmux {
+.pb-ui .content.showing-tmux #pane-tmux,
+.pb-ui .content.showing-pi #pane-pi {
   display: block;
 }
 
@@ -556,23 +558,33 @@
 .pb-ui .content.showing-ssh pre#news,
 .pb-ui .content.showing-ssh #pane-term,
 .pb-ui .content.showing-ssh #pane-tmux,
+.pb-ui .content.showing-ssh #pane-pi,
 .pb-ui .content.showing-output #pane-ssh,
 .pb-ui .content.showing-output #pane-term,
 .pb-ui .content.showing-output #pane-tmux,
+.pb-ui .content.showing-output #pane-pi,
 .pb-ui .content.showing-term #pane-apps,
 .pb-ui .content.showing-term pre#news,
 .pb-ui .content.showing-term #pane-ssh,
 .pb-ui .content.showing-term #pane-tmux,
+.pb-ui .content.showing-term #pane-pi,
 .pb-ui .content.showing-tmux #pane-apps,
 .pb-ui .content.showing-tmux pre#news,
 .pb-ui .content.showing-tmux #pane-ssh,
-.pb-ui .content.showing-tmux #pane-term {
+.pb-ui .content.showing-tmux #pane-term,
+.pb-ui .content.showing-tmux #pane-pi,
+.pb-ui .content.showing-pi #pane-apps,
+.pb-ui .content.showing-pi pre#news,
+.pb-ui .content.showing-pi #pane-ssh,
+.pb-ui .content.showing-pi #pane-term,
+.pb-ui .content.showing-pi #pane-tmux {
   display: none;
 }
 
 .pb-ui #pane-ssh iframe,
 .pb-ui #pane-term iframe,
-.pb-ui #pane-tmux iframe {
+.pb-ui #pane-tmux iframe,
+.pb-ui #pane-pi iframe {
   display: block;
   width: 100%;
   height: 100%;
@@ -584,7 +596,8 @@
 @media (max-width: 900px) {
   .pb-ui #pane-ssh,
   .pb-ui #pane-term,
-  .pb-ui #pane-tmux {
+  .pb-ui #pane-tmux,
+  .pb-ui #pane-pi {
     height: calc(100vh - 240px);
     min-height: 420px;
   }

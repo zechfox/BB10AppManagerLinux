@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <title>Pi agent &mdash; BB10 / PlayBook App Manager</title>
+  <script>
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed')
+    }
+  </script>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="term49.css?v=2">
+</head>
+
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <main class="shell">
+    <header class="term-top">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>pi agent</span>
+        <h1>Pi <span class="grad">on-device</span></h1>
+        <p class="sub" id="head-host">Loading device&hellip;</p>
+      </div>
+      <div class="term-top-actions">
+        <a class="back-link" href="index.html">&larr; Devices</a>
+        <a class="back-link" id="device-link" href="index.html">App manager</a>
+      </div>
+    </header>
+
+    <section class="card term-card" id="banner-card" hidden>
+      <p id="banner" class="term-banner"></p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Device connection</h2>
+          <p class="card-sub">Deploys <a href="https://github.com/wesley138cn/bb10-classic-toolkit"
+              target="_blank" rel="noreferrer">pi-classic</a> (Pi 0.74.2 adapted for BerryCore's QNX Node port)
+            through the term49-web shell. The device builds nothing; npm runs on this host.</p>
+        </div>
+        <span class="badge" id="conn-state">Connecting&hellip;</span>
+      </div>
+      <pre class="term-code" id="term-hint">Start it in Term49 on the device:
+
+  qpkg install term49-web
+  term49-web
+
+Then open this pane again.</pre>
+      <div class="term-meta-grid">
+        <div><span>Term49 home</span><code id="st-home">&mdash;</code></div>
+        <div><span>pi-classic root</span><code id="st-root">&mdash;</code></div>
+        <div><span>Private node</span><code id="st-node">&mdash;</code></div>
+        <div><span>Package tree</span><code id="st-pkg">&mdash;</code></div>
+        <div><span>Launcher</span><code id="st-launcher">&mdash;</code></div>
+        <div><span>GLM credentials</span><code id="st-creds">&mdash;</code></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="reconnect" class="primary">Reconnect</button>
+        <button type="button" id="refresh" class="ghost">Refresh</button>
+      </div>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Step 1 &mdash; Node.js</h2>
+          <p class="card-sub">Pi uses its own pinned Node 22 (QNX/ARM, <code>--jitless</code>). The zip is
+            fetched and SHA-verified on the device, then installed into
+            <code>pi-classic/node/</code>. Installing the BerryCore <code>node-term49</code> port is
+            optional and separate.</p>
+        </div>
+      </div>
+      <div class="term-meta-grid">
+        <div><span>node zip (pinned)</span><code id="st-nodezip">&mdash;</code></div>
+        <div><span>node-term49 (qpkg)</span><code id="st-qpkgnode">&mdash;</code></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="pi-nodezip-btn" class="primary">Fetch pinned node zip</button>
+        <button type="button" id="pi-node-btn" class="ghost">Install node-term49 (qpkg)</button>
+        <button type="button" id="pi-selftest-btn" class="ghost">Self-test node</button>
+      </div>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Step 2 &mdash; runtime package</h2>
+          <p class="card-sub">Build the prepared package on this host, then let the device pull it. Build:
+            <code>tools/build-pi-package.sh</code> (runs npm, transforms, tests, esbuild bundle; needs Node 22+ on
+            the host). Serve: start the app with <code>LISTEN_HOST=0.0.0.0</code> so the device can reach it.</p>
+        </div>
+      </div>
+      <label class="term-field">
+        <span>Artifact base URL</span>
+        <input type="text" id="pi-artifact-url" spellcheck="false" placeholder="http://host:8810/artifacts">
+      </label>
+      <p class="term-note" id="artifact-note"></p>
+      <div class="term-meta-grid">
+        <div><span>pi-package.zip</span><code id="st-pkgzip">&mdash;</code></div>
+        <div><span>Package installed</span><code id="st-pkginst">&mdash;</code></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="pi-pkgpull-btn" class="primary">Pull package</button>
+        <button type="button" id="pi-pkginstall-btn" class="primary">Install package</button>
+      </div>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Step 3 &mdash; adapter, launcher &amp; credentials</h2>
+          <p class="card-sub">Installs the toolkit's on-device scripts (curl transport, Unicode guards, launch
+            wrappers), the <code>pi</code> command, the backup extension, and &mdash; optionally &mdash; copies
+            BerryCloud's GLM endpoint into private Pi settings (on-device only, refuses existing configs).</p>
+        </div>
+      </div>
+      <div class="term-meta-grid">
+        <div><span>Toolkit scripts</span><code id="st-scripts">&mdash;</code></div>
+        <div><span>Guard extension</span><code id="st-guard">&mdash;</code></div>
+        <div><span>BerryCloud config</span><code id="st-berrycloud">&mdash;</code></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="pi-scripts-btn" class="primary">Install toolkit scripts</button>
+        <button type="button" id="pi-launcher-btn" class="primary">Install launcher</button>
+        <button type="button" id="pi-settings-btn" class="ghost">Install guard extension</button>
+        <button type="button" id="pi-configure-btn" class="ghost">Configure GLM (BerryCloud)</button>
+      </div>
+      <p class="term-note" style="margin-top:18px"><strong>Manual configuration</strong> &mdash; no BerryCloud
+        needed. Writes the same models.json/settings.json as the toolkit's configure.py (same QNX compat
+        settings), into the current terminal's home. One block per vendor &mdash; models from different
+        vendors each keep their own endpoint and key. Switch models inside Pi with <code>/model</code>.
+        Existing Pi configs are never overwritten.</p>
+      <p class="term-note" id="pi-cfg-status">Checking for an existing configuration&hellip;</p>
+      <table class="pi-cfg-table">
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th class="pi-cfg-col-endpoint">API endpoint</th>
+            <th class="pi-cfg-col-key">API key</th>
+            <th>Model IDs</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="pi-cfg-providers"></tbody>
+      </table>
+      <div class="actions">
+        <button type="button" id="pi-cfg-add" class="ghost">+ Add provider</button>
+        <button type="button" id="pi-cfg-btn" class="primary">Write Pi configuration</button>
+      </div>
+      <p class="term-note">The key is uploaded in small base64 chunks through the term49-web shell and stored only
+        in the device's <code>~/.pi/agent/</code> (mode 0600). It is not sent anywhere else.</p>
+      <p class="term-note">After installing, start Pi in Term49 with <code>pi</code> (resume: <code>pi -c</code>,
+        pick session: <code>pi -r</code>). Startup takes about a minute on a Classic.</p>
+    </section>
+
+    <section class="card term-card">
+      <div class="card-head">
+        <div>
+          <h2>Output</h2>
+          <p class="card-sub">Raw output from the device shell.</p>
+        </div>
+        <button type="button" id="clear-log" class="ghost">Clear</button>
+      </div>
+      <pre class="term-log" id="log"></pre>
+    </section>
+  </main>
+
+  <script src="pi.js?v=7"></script>
+</body>
+
+</html>
