@@ -2,7 +2,7 @@
 # Term49 Classic companion manager. Managed by the BB10 App Manager web UI.
 # Installed into Term49's real home and run as: sh term49-classic.sh <action>
 # Builds/installs the bb10-classic-toolkit Term49 companion on-device.
-CLASSIC_HELPER_VERSION=2
+CLASSIC_HELPER_VERSION=3
 
 N="${NATIVE_TOOLS:-/accounts/1000/shared/misc/berrycore}"
 # Real Term49 home: $SANDBOX/data when term49-web provides SANDBOX, else $HOME.
@@ -324,35 +324,35 @@ else:
 PYEOF
     LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/cwdpatch.py" "$C/launch-attached.py"
   fi
-  if ! grep -q "guard.log" "$C/launch-attached.py"; then
-    cat > "$WORK/guardpatch.py" <<'PYEOF'
+  # Remove the upstream foreground guard entirely: at boot the navigator PPS
+  # feed reports curr_window as absent or the literal 'none' for long stretches,
+  # so the name check can never pass. The hook only runs from a Term49 family
+  # terminal, and a wrong-group attach still fails loudly in terminal.log.
+  if ! grep -q "guard removed" "$C/launch-attached.py"; then
+    cat > "$WORK/noguard.py" <<'PYEOF'
 import sys
 p = sys.argv[1]
-s = open(p).read()
-old = " print('Keep the original Term49 in the foreground, then run term-cjk again.')"
-new = (" try:\n"
-       "  open('/accounts/1000/shared/misc/term49-cjk/guard.log','a').write('guard fail: curr=%r pid=%r\n' % (app.group(1) if app else None, pid.group(1) if pid else None))\n"
-       " except Exception:\n"
-       "  pass\n"
-       " print('Keep the original Term49 in the foreground, then run term-cjk again.')")
-if old in s and 'guard.log' not in s:
-    s = s.replace(old, new)
-    open(p, 'w').write(s)
-    print('guard logging installed')
+lines = open(p).read().split('\n')
+out = []
+changed = {'loop': False, 'check': False}
+for line in lines:
+    st = line.strip()
+    ind = line[:len(line) - len(st)]
+    if st.startswith('for attempt in range('):
+        out.append(ind + 'for attempt in range(0):  # guard removed: hook only runs from Term49 itself')
+        changed['loop'] = True
+    elif st.startswith('if not app or not') and st.endswith(':'):
+        out.append(ind + 'if False:  # guard removed')
+        changed['check'] = True
+    else:
+        out.append(line)
+if changed['loop'] or changed['check']:
+    open(p, 'w').write('\n'.join(out))
+    print('guard removed: loop=%s check=%s' % (changed['loop'], changed['check']))
 else:
-    print('guard logging already present or pattern changed')
-cond_old = "if app and app.group(1).startswith(('com.example.Term49.', 'com.update.Term49.')) and pid and pid.group(1)!='0':break"
-cond_new = "if pid and pid.group(1)!='0':break"
-if cond_old in s:
-    s = s.replace(cond_old, cond_new)
-    open(p, 'w').write(s)
-    print('none-state accepted during boot transitions')
-elif cond_new in s:
-    print('none-state already accepted')
-else:
-    print('WARNING: guard condition pattern not found')
+    print('already guard-free')
 PYEOF
-    LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/guardpatch.py" "$C/launch-attached.py"
+    LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/noguard.py" "$C/launch-attached.py"
   fi
   : > "$I/enabled"
   # Companion config: copy the active terminal config once, swap the font.
