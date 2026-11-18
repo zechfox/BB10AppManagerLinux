@@ -354,6 +354,25 @@ else:
 PYEOF
     LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/noguard.py" "$C/launch-attached.py"
   fi
+  # The SDL window group is named after the app PID, which equals $PPID inside
+  # the hook shell - deterministic, no PPS state involved. The launcher prefers
+  # TERM49_GROUP from the environment; PPS stays as the manual-start fallback.
+  if ! grep -q "TERM49_GROUP" "$C/launch-attached.py"; then
+    cat > "$WORK/grouppatch.py" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = "env['TERM49_PARENT_GROUP']='SDL-window-'+pid.group(1)"
+new = "env['TERM49_PARENT_GROUP']=os.environ.get('TERM49_GROUP') or 'SDL-window-'+(pid.group(1) if pid else '0')"
+if old in s and 'TERM49_GROUP' not in s:
+    s = s.replace(old, new)
+    open(p, 'w').write(s)
+    print('group source patched')
+else:
+    print('already patched or pattern changed')
+PYEOF
+    LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$WORK/grouppatch.py" "$C/launch-attached.py"
+  fi
   : > "$I/enabled"
   # Companion config: copy the active terminal config once, swap the font.
   if [ ! -f "$SD/.term49cjkrc" ]; then
@@ -387,7 +406,7 @@ do_enable () {
 
 # Term49 Classic companion (scrollback + IME); remove term49-cjk/enabled to disable
 if [ -t 0 ] && [ -z "${TERM49_CJK-}" ] && [ -f /accounts/1000/shared/misc/term49-cjk/enabled ]; then
-  sh /accounts/1000/shared/misc/term49-cjk/start-cjk.sh
+  TERM49_GROUP="SDL-window-$PPID" sh /accounts/1000/shared/misc/term49-cjk/start-cjk.sh
 fi
 PROFEOF
     say "Added .profile hook (backup: .profile.before-term49-classic)."
