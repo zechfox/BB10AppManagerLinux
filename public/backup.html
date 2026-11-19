@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <title>Backup / Restore &mdash; BB10 / PlayBook App Manager</title>
+  <script>
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed')
+    }
+  </script>
+  <link rel="icon" href="images/playbook.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ssh.css?v=4">
+  <link rel="stylesheet" href="backup.css?v=1">
+</head>
+
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <main class="shell">
+    <header class="ssh-top">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>no developer mode needed</span>
+        <h1>Backup <span class="grad">/ Restore</span></h1>
+        <p class="sub" id="head-host">Loading device&hellip;</p>
+      </div>
+      <div class="ssh-top-actions">
+        <a class="back-link" href="index.html">&larr; Devices</a>
+        <a class="back-link" id="device-link" href="index.html">App manager</a>
+      </div>
+    </header>
+
+    <section class="card ssh-card backup-card" id="banner-card" hidden>
+      <p id="banner" class="ssh-banner"></p>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Device</h2>
+          <p class="card-sub">Log in with the device password (Settings &rarr; Security &rarr; Device Password).
+            No developer mode or BlackBerry ID is required.</p>
+        </div>
+        <span class="badge" id="conn-state">Connecting&hellip;</span>
+      </div>
+      <div class="ssh-grid">
+        <div><span>Model</span><code id="dev-model">&mdash;</code></div>
+        <div><span>PIN</span><code id="dev-pin">&mdash;</code></div>
+        <div><span>OS</span><code id="dev-os">&mdash;</code></div>
+        <div><span>Device name</span><code id="dev-name">&mdash;</code></div>
+        <div><span>Battery</span><code id="dev-battery">&mdash;</code></div>
+        <div><span>Free space</span><code id="dev-free">&mdash;</code></div>
+      </div>
+      <form id="login-form" class="login-row" hidden>
+        <input type="password" id="password" placeholder="Device password" autocomplete="current-password">
+        <label class="check"><input type="checkbox" id="remember"> Remember password</label>
+        <button type="submit" id="login-btn" class="primary">Log in</button>
+      </form>
+      <div class="actions">
+        <button type="button" id="logout" class="ghost" hidden>Log out</button>
+        <button type="button" id="reconnect" class="ghost">Reconnect</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Backup</h2>
+          <p class="card-sub">Saves a <code>.bbb</code> file (same format as BlackBerry Link / Sachesi) into
+            <code>var/backups/</code> on this computer.</p>
+        </div>
+      </div>
+      <div id="cat-list" class="cat-list"></div>
+      <p class="hint" id="list-hint">Log in to list the backup data on the device.</p>
+      <div class="progress-wrap" id="backup-progress" hidden>
+        <div class="progress-bar"><div class="progress-fill" id="backup-fill"></div></div>
+        <p class="hint" id="backup-status"></p>
+      </div>
+      <div class="actions">
+        <button type="button" id="backup-start" class="primary" disabled>Start backup</button>
+        <button type="button" id="backup-cancel" class="ghost" hidden>Cancel</button>
+        <a id="backup-download" class="button-link" hidden download>Download .bbb</a>
+      </div>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Restore</h2>
+          <p class="card-sub">Uploads a backup's archives back to this device. Restoring overwrites the matching
+            data (settings, app data, media) on the device.</p>
+        </div>
+      </div>
+      <div class="restore-row">
+        <select id="restore-file"><option value="">No backup files yet</option></select>
+        <button type="button" id="files-refresh" class="ghost">Refresh</button>
+      </div>
+      <div id="restore-cats" class="cat-list"></div>
+      <p class="warn-box" hidden id="restore-warning">Restoring replaces the selected data on the device. Make sure
+        the device is on battery and stays connected until it finishes.</p>
+      <div class="progress-wrap" id="restore-progress" hidden>
+        <div class="progress-bar"><div class="progress-fill" id="restore-fill"></div></div>
+        <p class="hint" id="restore-status"></p>
+      </div>
+      <div class="actions">
+        <button type="button" id="restore-start" class="primary" disabled>Start restore</button>
+        <button type="button" id="restore-cancel" class="ghost" hidden>Cancel</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Backup files</h2>
+          <p class="card-sub">Files in <code>var/backups/</code> on the computer running this app.</p>
+        </div>
+        <button type="button" id="files-refresh2" class="ghost">Refresh</button>
+      </div>
+      <div id="file-list" class="file-list"></div>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Device traffic log</h2>
+          <p class="card-sub">Every request/response exchanged with the device. If a backup fails, copy this
+            and include it in a bug report (it contains session cookies &mdash; strip the
+            <code>cookie:</code> fields first if that matters to you).</p>
+        </div>
+      </div>
+      <pre class="ssh-log" id="wire-log">Loading&hellip;</pre>
+      <div class="actions">
+        <button type="button" id="wire-refresh" class="ghost">Refresh</button>
+        <button type="button" id="wire-copy" class="ghost">Copy</button>
+        <button type="button" id="wire-clear" class="ghost">Clear</button>
+      </div>
+    </section>
+
+    <section class="card ssh-card backup-card">
+      <div class="card-head">
+        <div>
+          <h2>Log</h2>
+          <p class="card-sub">Backup and restore activity.</p>
+        </div>
+        <button type="button" id="clear-log" class="ghost">Clear</button>
+      </div>
+      <pre class="ssh-log" id="log"></pre>
+    </section>
+  </main>
+
+  <script src="backup.js?v=1"></script>
+</body>
+
+</html>

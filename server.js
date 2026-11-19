@@ -7,13 +7,27 @@ const net = require('net')
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
+const { createBackupHandler } = require('./bb-backup')
 
 const PORT = Number(process.env.PORT || 8810)
 const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1'
 const PUBLIC_DIR = path.join(__dirname, 'public')
 const ARTIFACTS_DIR = path.join(__dirname, 'var', 'artifacts')
+const BACKUPS_DIR = path.join(__dirname, 'var', 'backups')
 const DEVICE_USER_AGENT = 'QNXWebClient/1.0'
 const TERM49_WEB_PORT = 7681
+const handleBackupRoute = createBackupHandler(BACKUPS_DIR, {
+  sharedCookie (host) {
+    return cookieHeader(host)
+  },
+  adoptCookie (host, cookie) {
+    const jar = getJar(host)
+    for (const part of String(cookie).split('; ')) {
+      const eq = part.indexOf('=')
+      if (eq > 0) jar.set(part.slice(0, eq).trim(), part.slice(eq + 1).trim())
+    }
+  }
+})
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -462,7 +476,7 @@ function handleStatic (req, res, pathname) {
   sendFile(res, filePath)
 }
 
-const server = http.createServer((req, res) => {
+function routeRequest (req, res) {
   const fullUrl = req.url || '/'
   const queryIndex = fullUrl.indexOf('?')
   const pathname = queryIndex < 0 ? fullUrl : fullUrl.slice(0, queryIndex)
@@ -501,6 +515,19 @@ const server = http.createServer((req, res) => {
   }
 
   handleStatic(req, res, pathname)
+}
+
+const server = http.createServer((req, res) => {
+  Promise.resolve(handleBackupRoute(req, res))
+    .then((handled) => {
+      if (!handled) routeRequest(req, res)
+    })
+    .catch((err) => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
+      }
+      res.end('Internal error: ' + err.message)
+    })
 })
 
 server.on('upgrade', (req, socket, head) => {

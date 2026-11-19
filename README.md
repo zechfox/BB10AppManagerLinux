@@ -35,8 +35,59 @@ password. The rest of the UI is the original app manager UI: list apps, install
 `.bar` files (drag and drop), launch, terminate and uninstall. The app list also has
 an **Export list** button that saves the installed apps as a CSV inventory.
 
+## Backup / Restore
+
+> **Status: not verified end-to-end on a real device.** The implementation
+> follows the Sachesi/BlackBerry Link protocol and is exercised against a
+> protocol simulator covering many firmware variants (login challenges, merged
+> and split backup start, backup-ID cookies, per-app pkgtypes, streaming
+> fallbacks), with byte-verified `.bbb` output and SHA-256-verified restore
+> uploads. On the one real device it was tried on (BlackBerry Classic, OS
+> 10.3.3.3204) every step succeeded up to the archive download, where the
+> **device's own backup service** accepted the request (`HTTP 200`,
+> `application/octet-stream`) but sent zero bytes and logged "CRC error
+> detected for last GET operation" — see the last bullet below. Treat the
+> feature as experimental until it is confirmed on a device whose backup
+> service works.
+
+The **Backup / Restore** pane in a device saves and restores full-device backups,
+the same way BlackBerry Link (or the open-source Sachesi) does:
+
+- **No developer mode and no BlackBerry ID needed** — it uses the device's normal
+  management service and your device password, over USB or Wi-Fi.
+- If you opened the device from the device list you are already logged in: the
+  pane reuses that session and never asks for the password. It only asks when
+  there is no usable session (e.g. the standalone `backup.html?host=<host>`
+  page), and a pane login is shared back with the app manager.
+- Three categories: **Application Data** (with per-part selection: app settings,
+  app data, app binaries), **Media**, and **Device Settings / local Contacts &
+  Calendar**.
+- Backups are standard `.bbb` files (a ZIP containing `Manifest.xml` plus
+  `Archive/app.tar`, `Archive/media.tar`, `Archive/settings.tar`), stored in
+  `var/backups/` and downloadable from the pane. Files produced by BlackBerry
+  Link or Sachesi can be restored too.
+- Firmware/OS is *not* part of device backups, so it is not backed up here either.
+- Restoring uploads the archive streams back and **replaces the matching data on
+  the device** — keep the device on battery until it finishes.
+- Some devices' own backup service fails to serve the packaged archives (the
+  device answers the download request with `HTTP 200 application/octet-stream`
+  and zero bytes, and reports "CRC error detected for last GET operation").
+  That is a device-side failure, not a client one — it has been observed on
+  devices with no BlackBerry ID signed in. Signing into a BlackBerry ID on the
+  device (Settings → Accounts) may restore its backup capability; media and
+  documents can always be copied via the device's Wi-Fi Storage (SMB, the
+  credentials are in the login response) instead.
+
+The pane is also available standalone as `backup.html?host=<host>`.
+
+If a backup fails against your device, a full request/response trace is written
+to `var/backups/wire-<host>.log` automatically — it shows the exact step (and
+the device's raw XML) that was refused. Delete the file before sharing it: it
+contains the device session cookies. (`BB10_BACKUP_DEBUG=0` disables logging.)
+
 Inside a device, the left navigation has **SSH**, **Term49**, **Tmux** and **Pi agent**
-panes (next to Installed apps, Detail Device Info, Install logs and About). The SSH
+panes (next to Installed apps, Backup / Restore, Detail Device Info, Install logs and
+About). The SSH
 panel is also available standalone at `ssh.html`. All four use
 [term49-web](https://github.com/sw7ft/BerryCore) as the on-device shell:
 
@@ -134,6 +185,11 @@ Browser  ──HTTP──▶  local Node proxy  ──HTTPS (TLS verification of
 
 - `server.js` serves `public/` and proxies `/proxy/<host>/cgi-bin/...` to
   `https://<host>/cgi-bin/...`.
+- `bb-backup.js` drives the Backup / Restore pane server-side: it performs the
+  device login (discovery, SHA-512 challenge), then talks to `backup.cgi` — the
+  device streams each category as a raw tar stream which is packed into a
+  zip64 `.bbb` file in `var/backups/`; restore streams those tars back. Its API
+  lives under `/backup/<host>/api/...`.
 - For the SSH panel it also proxies `/term/<host>/...` and the `/term/<host>/ws`
   WebSocket to term49-web at `http://<host>:7681` (same-origin, with Host/Origin
   checks on the WebSocket upgrade).
@@ -152,8 +208,12 @@ Only the network layer changed; app management behaviour is unchanged.
   device serves. It only talks to the host you specify in the URL.
 - It listens on `127.0.0.1` by default.
 - "Auto Login" stores the device password in your browser's `localStorage`. Use it
-  only on a trusted machine.
+  only on a trusted machine. The Backup pane has the same optional
+  "Remember password" toggle (namespaced per device).
 - Cookies are kept in memory in the Node process and are not written to disk.
+- Backup files are written to `var/backups/` and served by the `/download` and
+  file-list endpoints without authentication. Like the rest of this app, only
+  expose it with `LISTEN_HOST=0.0.0.0` on a trusted network.
 
 ## Known limitations
 
@@ -163,7 +223,12 @@ Only the network layer changed; app management behaviour is unchanged.
   used with modern Node/OpenSSL.
 - Device status (battery / free space) is only shown for USB addresses
   (`169.254.x.x`), same as the original.
-- Closing the Node process clears login sessions and requires logging in again.
+- Closing the Node process clears login sessions and requires logging in again
+  (both the app manager and the Backup pane), and aborts a running backup or
+  restore.
+- Backups of large Media categories can be many GB and take a while; progress is
+  shown in the pane and the job can be cancelled.
+- A cancelled or failed backup is discarded (the partial `.bbb` is deleted).
 - The SSH, Term49, Tmux and Pi panels require `term49-web` to be running on the
   device, and term49-web has no boot autostart; start it in Term49 after each reboot.
   Auto-start (`settings sshd-on`) starts sshd on the next Term49 login, not at device
