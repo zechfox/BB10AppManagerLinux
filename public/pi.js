@@ -337,6 +337,20 @@
     })
   }
 
+  function readStored (key) {
+    try {
+      return localStorage.getItem('bb10am.' + key) || ''
+    } catch (err) {
+      return ''
+    }
+  }
+
+  function writeStored (key, value) {
+    try {
+      localStorage.setItem('bb10am.' + key, String(value || ''))
+    } catch (err) { }
+  }
+
   function helperRun (action, timeout) {
     return ensureHelper().then(function () {
       return runCommand(HELPER_PREFIX + 'sh "$PD/pi-classic.sh" ' + action, timeout || 30000)
@@ -626,7 +640,8 @@
 
     var host = location.hostname
     var loopback = !host || host === '127.0.0.1' || host === 'localhost' || host === '::1'
-    el['pi-artifact-url'].value = loopback ? '' : 'http://' + host + ':8810/artifacts'
+    var savedUrl = readStored('pi-artifact-url')
+    el['pi-artifact-url'].value = savedUrl || (loopback ? '' : 'http://' + host + ':8810/artifacts')
 
     el.reconnect.addEventListener('click', connect)
     el.refresh.addEventListener('click', function () {
@@ -659,6 +674,7 @@
       'Copy the BerryCloud GLM endpoint and API key into private Pi settings? This writes ~/.pi/agent/models.json and settings.json (refused if they exist). Review the toolkit configure.py if unsure.'))
     el['clear-log'].addEventListener('click', function () { el.log.textContent = '' })
     el['pi-artifact-url'].addEventListener('input', function () {
+      writeStored('pi-artifact-url', el['pi-artifact-url'].value)
       updateArtifactNote()
       updateButtons()
     })
