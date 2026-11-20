@@ -109,6 +109,8 @@
     status = {}
     helperUploaded = false
     helperPromise = null
+    busy = false
+    if (busyTimer) { clearTimeout(busyTimer); busyTimer = null }
     updateButtons()
     setConnection('warn', 'Connecting\u2026')
     log('Connecting to term49-web for ' + HOST)
@@ -475,7 +477,7 @@
 
   function updateButtons () {
     var idle = connected && !busy
-    el.reconnect.disabled = busy
+    el.reconnect.disabled = false
     el.refresh.disabled = !connected || busy
     el['pi-nodezip-btn'].disabled = !(idle && status.NODEZIP_JOB !== 'running')
     el['pi-node-btn'].disabled = !idle
@@ -511,7 +513,7 @@
       if (!busy) return
       log('A device command did not finish in time; clearing the busy state. Click Reconnect if the shell stays unresponsive.')
       setBusy(false)
-    }, 90000)
+    }, 330000)
     Promise.resolve()
       .then(task)
       .catch(function (err) {
