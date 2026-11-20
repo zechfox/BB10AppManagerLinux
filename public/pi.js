@@ -751,5 +751,21 @@
     connect()
   }
 
-  init()
+  try {
+    init()
+  } catch (err) {
+    try {
+      document.getElementById('conn-state').textContent = 'Init error: ' + err.message
+      document.getElementById('conn-state').className = 'badge bad'
+      var logEl = document.getElementById('log')
+      if (logEl) logEl.textContent = 'Initialisation failed: ' + err.message + '\n' + (err.stack || '')
+    } catch (e) { }
+  }
+
+  window.addEventListener('error', function (ev) {
+    try {
+      var logEl = document.getElementById('log')
+      if (logEl) logEl.textContent += '\nScript error: ' + (ev.message || ev.error) + '\n' + (ev.error && ev.error.stack ? ev.error.stack : '')
+    } catch (e) { }
+  })
 })()
