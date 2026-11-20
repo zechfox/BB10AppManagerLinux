@@ -73,94 +73,122 @@ Then open this pane again.</pre>
     <section class="card term-card">
       <div class="card-head">
         <div>
-          <h2>Step 1 &mdash; Node.js</h2>
-          <p class="card-sub">Pi uses its own pinned Node 22 (QNX/ARM, <code>--jitless</code>). The zip is
-            fetched and SHA-verified on the device, then installed into
-            <code>pi-classic/node/</code>. Installing the BerryCore <code>node-term49</code> port is
-            optional and separate.</p>
+          <h2>Installation steps</h2>
+          <p class="card-sub">Work top to bottom. Each step unlocks the next; status updates from the device
+            automatically.</p>
         </div>
+        <span class="badge" id="pi-progress-text">0 / 7</span>
       </div>
-      <div class="term-meta-grid">
-        <div><span>node zip (pinned)</span><code id="st-nodezip">&mdash;</code></div>
-        <div><span>node-term49 (qpkg)</span><code id="st-qpkgnode">&mdash;</code></div>
-      </div>
-      <div class="actions">
-        <button type="button" id="pi-nodezip-btn" class="primary">Fetch pinned node zip</button>
-        <button type="button" id="pi-node-btn" class="ghost">Install node-term49 (qpkg)</button>
-        <button type="button" id="pi-selftest-btn" class="ghost">Self-test node</button>
-      </div>
-    </section>
+      <div class="pi-progress"><div class="pi-progress-fill" id="pi-progress-fill"></div></div>
 
-    <section class="card term-card">
-      <div class="card-head">
-        <div>
-          <h2>Step 2 &mdash; runtime package</h2>
-          <p class="card-sub">Build the prepared package on this host, then let the device pull it. Build:
-            <code>tools/build-pi-package.sh</code> (runs npm, transforms, tests, esbuild bundle; needs Node 22+ on
-            the host). Serve: start the app with <code>LISTEN_HOST=0.0.0.0</code> so the device can reach it.</p>
+      <div class="pi-steps">
+        <div class="pi-step" id="step-scripts">
+          <div class="pi-step-head">
+            <span class="pi-step-num">1</span>
+            <strong>Toolkit scripts</strong>
+            <span class="pi-step-pill" id="pill-scripts">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-scripts">Adapter scripts (installers, curl transport, launcher wrapper)
+            fetched from the bb10-classic-toolkit repository on the device.</p>
+          <div class="actions">
+            <button type="button" id="pi-scripts-btn" class="primary">Install toolkit scripts</button>
+          </div>
         </div>
-      </div>
-      <label class="term-field">
-        <span>Artifact base URL</span>
-        <input type="text" id="pi-artifact-url" spellcheck="false" placeholder="http://host:8810/artifacts">
-      </label>
-      <p class="term-note" id="artifact-note"></p>
-      <div class="term-meta-grid">
-        <div><span>pi-package.zip</span><code id="st-pkgzip">&mdash;</code></div>
-        <div><span>Package installed</span><code id="st-pkginst">&mdash;</code></div>
-      </div>
-      <div class="actions">
-        <button type="button" id="pi-pkgpull-btn" class="primary">Pull package</button>
-        <button type="button" id="pi-pkginstall-btn" class="primary">Install package</button>
-      </div>
-    </section>
 
-    <section class="card term-card">
-      <div class="card-head">
-        <div>
-          <h2>Step 3 &mdash; adapter, launcher &amp; credentials</h2>
-          <p class="card-sub">Installs the toolkit's on-device scripts (curl transport, Unicode guards, launch
-            wrappers), the <code>pi</code> command, the backup extension, and &mdash; optionally &mdash; copies
-            BerryCloud's GLM endpoint into private Pi settings (on-device only, refuses existing configs).</p>
+        <div class="pi-step" id="step-nodezip">
+          <div class="pi-step-head">
+            <span class="pi-step-num">2</span>
+            <strong>Node zip</strong>
+            <span class="pi-step-pill" id="pill-nodezip">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-nodezip">Pinned Node 22 for QNX/ARM, downloaded and SHA-verified on
+            the device.</p>
+          <div class="actions">
+            <button type="button" id="pi-nodezip-btn" class="primary">Fetch pinned node zip</button>
+          </div>
+        </div>
+
+        <div class="pi-step" id="step-nodeinst">
+          <div class="pi-step-head">
+            <span class="pi-step-num">3</span>
+            <strong>Node install (private)</strong>
+            <span class="pi-step-pill" id="pill-nodeinst">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-nodeinst">Installs the verified zip into <code>pi-classic/node/</code>
+            &mdash; the Node build Pi actually runs.</p>
+          <div class="actions">
+            <button type="button" id="pi-nodeinst-btn" class="primary">Install private Node</button>
+            <button type="button" id="pi-selftest-btn" class="ghost">Self-test</button>
+            <button type="button" id="pi-node-btn" class="ghost">Install node-term49 (qpkg, optional)</button>
+          </div>
+        </div>
+
+        <div class="pi-step" id="step-package">
+          <div class="pi-step-head">
+            <span class="pi-step-num">4</span>
+            <strong>Runtime package</strong>
+            <span class="pi-step-pill" id="pill-package">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-package">Build on this host with <code>tools/build-pi-package.sh</code>,
+            then pull from the app.</p>
+          <label class="term-field">
+            <span>Artifact base URL</span>
+            <input type="text" id="pi-artifact-url" spellcheck="false" placeholder="http://169.254.0.2:8810/artifacts">
+          </label>
+          <p class="term-note" id="artifact-note"></p>
+          <div class="actions">
+            <button type="button" id="pi-pkgpull-btn" class="primary">Pull package</button>
+            <button type="button" id="pi-pkginstall-btn" class="primary">Install package</button>
+          </div>
+        </div>
+
+        <div class="pi-step" id="step-launcher">
+          <div class="pi-step-head">
+            <span class="pi-step-num">5</span>
+            <strong>Launcher</strong>
+            <span class="pi-step-pill" id="pill-launcher">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-launcher">Installs the <code>pi</code> command into BerryCore's
+            bin.</p>
+          <div class="actions">
+            <button type="button" id="pi-launcher-btn" class="primary">Install launcher</button>
+          </div>
+        </div>
+
+        <div class="pi-step" id="step-guard">
+          <div class="pi-step-head">
+            <span class="pi-step-num">6</span>
+            <strong>Guard extension</strong>
+            <span class="pi-step-pill" id="pill-guard">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-guard">File backups and confirmations for the agent (not a security
+            sandbox).</p>
+          <div class="actions">
+            <button type="button" id="pi-settings-btn" class="primary">Install guard extension</button>
+          </div>
+        </div>
+
+        <div class="pi-step" id="step-creds">
+          <div class="pi-step-head">
+            <span class="pi-step-num">7</span>
+            <strong>Provider credentials</strong>
+            <span class="pi-step-pill" id="pill-creds">pending</span>
+          </div>
+          <p class="pi-step-hint" id="hint-creds">Copy BerryCloud's GLM endpoint or configure providers manually
+            (one row per vendor). Existing configs are never silently replaced.</p>
+          <div class="actions">
+            <button type="button" id="pi-configure-btn" class="ghost">Configure GLM (BerryCloud)</button>
+          </div>
+          <div id="pi-cfg-providers"></div>
+          <div class="actions">
+            <button type="button" id="pi-cfg-add" class="ghost">+ Add provider</button>
+            <button type="button" id="pi-cfg-btn" class="primary">Write Pi configuration</button>
+          </div>
+          <p class="term-note" id="pi-cfg-status">Checking for an existing configuration&hellip;</p>
         </div>
       </div>
-      <div class="term-meta-grid">
-        <div><span>Toolkit scripts</span><code id="st-scripts">&mdash;</code></div>
-        <div><span>Guard extension</span><code id="st-guard">&mdash;</code></div>
-        <div><span>BerryCloud config</span><code id="st-berrycloud">&mdash;</code></div>
-      </div>
-      <div class="actions">
-        <button type="button" id="pi-scripts-btn" class="primary">Install toolkit scripts</button>
-        <button type="button" id="pi-launcher-btn" class="primary">Install launcher</button>
-        <button type="button" id="pi-settings-btn" class="ghost">Install guard extension</button>
-        <button type="button" id="pi-configure-btn" class="ghost">Configure GLM (BerryCloud)</button>
-      </div>
-      <p class="term-note" style="margin-top:18px"><strong>Manual configuration</strong> &mdash; no BerryCloud
-        needed. Writes the same models.json/settings.json as the toolkit's configure.py (same QNX compat
-        settings), into the current terminal's home. One block per vendor &mdash; models from different
-        vendors each keep their own endpoint and key. Switch models inside Pi with <code>/model</code>.
-        Existing Pi configs are never overwritten.</p>
-      <p class="term-note" id="pi-cfg-status">Checking for an existing configuration&hellip;</p>
-      <table class="pi-cfg-table">
-        <thead>
-          <tr>
-            <th>Provider</th>
-            <th class="pi-cfg-col-endpoint">API endpoint</th>
-            <th class="pi-cfg-col-key">API key</th>
-            <th>Model IDs</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="pi-cfg-providers"></tbody>
-      </table>
-      <div class="actions">
-        <button type="button" id="pi-cfg-add" class="ghost">+ Add provider</button>
-        <button type="button" id="pi-cfg-btn" class="primary">Write Pi configuration</button>
-      </div>
-      <p class="term-note">The key is uploaded in small base64 chunks through the term49-web shell and stored only
-        in the device's <code>~/.pi/agent/</code> (mode 0600). It is not sent anywhere else.</p>
-      <p class="term-note">After installing, start Pi in Term49 with <code>pi</code> (resume: <code>pi -c</code>,
-        pick session: <code>pi -r</code>). Startup takes about a minute on a Classic.</p>
+      <p class="term-note">The API key is uploaded in base64 chunks through the term49-web shell and stored only in
+        the device's <code>~/.pi/agent/</code> (mode 0600). It is not sent anywhere else.</p>
     </section>
 
     <section class="card term-card">
@@ -175,7 +203,7 @@ Then open this pane again.</pre>
     </section>
   </main>
 
-  <script src="pi.js?v=12"></script>
+  <script src="pi.js?v=13"></script>
 </body>
 
 </html>

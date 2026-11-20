@@ -14,7 +14,7 @@
   var helperUploaded = false
   var helperPromise = null
   var existingLoaded = false
-  var PI_HELPER_VERSION = '1'
+  var PI_HELPER_VERSION = '2'
   var HELPER_PREFIX = 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; PD="$D/.pihelper"; '
 
   function normalizeHost (value) {
@@ -38,7 +38,11 @@
       'st-berrycloud', 'refresh', 'pi-nodezip-btn', 'pi-node-btn', 'pi-selftest-btn',
       'pi-artifact-url', 'artifact-note', 'pi-pkgpull-btn', 'pi-pkginstall-btn',
       'pi-scripts-btn', 'pi-launcher-btn', 'pi-settings-btn', 'pi-configure-btn', 'log', 'clear-log',
-      'pi-cfg-providers', 'pi-cfg-add', 'pi-cfg-btn', 'pi-cfg-status'
+      'pi-cfg-providers', 'pi-cfg-add', 'pi-cfg-btn', 'pi-cfg-status',
+      'pi-nodeinst-btn', 'pi-progress-text', 'pi-progress-fill',
+      'pill-scripts', 'pill-nodezip', 'pill-nodeinst', 'pill-package', 'pill-launcher', 'pill-guard', 'pill-creds',
+      'hint-scripts', 'hint-nodezip', 'hint-nodeinst', 'hint-package', 'hint-launcher', 'hint-guard', 'hint-creds',
+      'step-scripts', 'step-nodezip', 'step-nodeinst', 'step-package', 'step-launcher', 'step-guard', 'step-creds'
     ]
     ids.forEach(function (id) {
       el[id] = $(id)
@@ -403,92 +407,123 @@
     return String(el['pi-artifact-url'].value || '').trim().replace(/\/+$/, '')
   }
 
-  function renderStatus () {
-    mark(el['st-home'], status.HOME, status.HOME || '\u2014')
-    mark(el['st-root'], status.ROOT, status.ROOT || '\u2014')
-    mark(el['st-node'], status.PRIVNODE === '1',
-      status.PRIVNODE === '1' ? (status.NODE_VERSION || 'installed') : 'not installed')
-    mark(el['st-pkg'], status.PACKAGE === '1', status.PACKAGE === '1' ? 'installed' : 'not installed')
-    mark(el['st-launcher'], status.LAUNCHER === '1', status.LAUNCHER === '1' ? 'bin/pi' : 'not installed')
-    mark(el['st-creds'], status.CREDS === '1', status.CREDS === '1' ? 'configured' : 'not configured')
-    mark(el['st-nodezip'], status.NODEZIP === '1', status.NODEZIP === '1' ? 'on device (verified)' : 'not fetched')
-    mark(el['st-qpkgnode'], status.QPKG_NODE === '1', status.QPKG_NODE === '1' ? 'installed' : 'not installed')
-    mark(el['st-pkgzip'], status.PKGZIP === '1', status.PKGZIP === '1' ? 'on device' : 'not pulled')
-    mark(el['st-pkginst'], status.PACKAGE === '1', status.PACKAGE === '1' ? 'installed' : 'not installed')
-    mark(el['st-scripts'], status.SCRIPTS === '1', status.SCRIPTS === '1' ? 'ready' : 'not fetched')
-    mark(el['st-guard'], status.GUARD === '1', status.GUARD === '1' ? 'installed' : 'not installed')
-    mark(el['st-berrycloud'], status.BERRYCLOUD === '1', status.BERRYCLOUD === '1' ? 'present' : 'absent')
+  var STEPS = [
+    { key: 'scripts', done: function (s) { return s.SCRIPTS === '1' }, running: function (s) { return s.SCRIPTS_JOB === 'running' }, fail: function (s) { return failedJob(s.SCRIPTS_JOB) } },
+    { key: 'nodezip', done: function (s) { return s.NODEZIP === '1' }, running: function (s) { return s.NODEZIP_JOB === 'running' }, fail: function (s) { return failedJob(s.NODEZIP_JOB) } },
+    { key: 'nodeinst', done: function (s) { return s.PRIVNODE === '1' }, running: function () { return false }, fail: function () { return false } },
+    { key: 'package', done: function (s) { return s.PACKAGE === '1' }, running: function (s) { return s.PKG_JOB === 'running' }, fail: function (s) { return failedJob(s.PKG_JOB) } },
+    { key: 'launcher', done: function (s) { return s.LAUNCHER === '1' }, running: function () { return false }, fail: function () { return false } },
+    { key: 'guard', done: function (s) { return s.GUARD === '1' }, running: function () { return false }, fail: function () { return false } },
+    { key: 'creds', done: function (s) { return s.CREDS === '1' }, running: function () { return false }, fail: function () { return false } }
+  ]
 
-    var jobs = jobsBusy()
+  function failedJob (state) {
+    return String(state || '').indexOf('failed') === 0
+  }
+
+  function renderSteps () {
+    var s = status
+    var doneCount = 0
+    var currentAssigned = false
+    STEPS.forEach(function (step) {
+      var done = step.done(s)
+      var running = step.running(s)
+      var failed = step.fail(s)
+      if (done) doneCount++
+      var row = el['step-' + step.key]
+      var pill = el['pill-' + step.key]
+      var hint = el['hint-' + step.key]
+      if (!row || !pill) return
+      row.classList.remove('is-done', 'is-running', 'is-current', 'is-failed')
+      if (done) {
+        row.classList.add('is-done')
+        pill.textContent = 'done'
+      } else if (running) {
+        row.classList.add('is-running')
+        pill.textContent = 'running\u2026'
+      } else if (failed) {
+        row.classList.add('is-failed')
+        pill.textContent = 'failed'
+      } else if (!currentAssigned) {
+        currentAssigned = true
+        row.classList.add('is-current')
+        pill.textContent = 'next'
+      } else {
+        pill.textContent = 'pending'
+      }
+      if (step.key === 'package' && !done && !running) {
+        var pulled = s.PKGZIP === '1'
+        var scripts = s.SCRIPTS === '1'
+        if (!scripts) hint.textContent = 'Needs the toolkit scripts first (step 1).'
+        else if (!pulled) hint.textContent = 'Pull the package from this host, then install it.'
+        else hint.textContent = 'pi-package.zip is on the device \u2014 click Install package.'
+      }
+    })
+    var pct = Math.round(doneCount / STEPS.length * 100)
+    if (el['pi-progress-text']) el['pi-progress-text'].textContent = doneCount + ' / ' + STEPS.length
+    if (el['pi-progress-fill']) el['pi-progress-fill'].style.width = pct + '%'
+
+    mark(el['st-home'], s.HOME, s.HOME || '\u2014')
+    mark(el['st-root'], s.ROOT, s.ROOT || '\u2014')
+    mark(el['st-node'], s.PRIVNODE === '1', s.PRIVNODE === '1' ? (s.NODE_VERSION || 'installed') : 'not installed')
+    mark(el['st-pkg'], s.PACKAGE === '1', s.PACKAGE === '1' ? 'installed' : 'not installed')
+    mark(el['st-launcher'], s.LAUNCHER === '1', s.LAUNCHER === '1' ? 'bin/pi' : 'not installed')
+    mark(el['st-creds'], s.CREDS === '1', s.CREDS === '1' ? 'configured' : 'not configured')
+  }
+
+  function renderStatus () {
+    var s = status
+    var jobs = jobsBusy() || s.SCRIPTS_JOB === 'running'
     var running = []
-    if (status.NODE_JOB === 'running') running.push('node install')
-    if (status.NODEZIP_JOB === 'running') running.push('node zip fetch')
-    if (status.PKG_JOB === 'running') running.push('package pull')
+    if (s.NODE_JOB === 'running') running.push('node-term49 install')
+    if (s.NODEZIP_JOB === 'running') running.push('node zip fetch')
+    if (s.PKG_JOB === 'running') running.push('package pull')
+    if (s.SCRIPTS_JOB === 'running') running.push('toolkit scripts')
     el['conn-state'].textContent = jobs ? ('Working: ' + running.join(', ')) : 'Connected'
     el['conn-state'].className = 'badge' + (jobs ? ' warn' : ' ok')
 
-    if (status.CREDS === '1') {
+    if (s.CREDS === '1') {
       el['pi-cfg-btn'].textContent = 'Replace configuration (backs up first)'
     } else {
       el['pi-cfg-btn'].textContent = 'Write Pi configuration'
     }
     loadExistingConfig().catch(function () { })
 
+    renderSteps()
     updateButtons()
 
     if (jobs) startPolling()
     else stopPolling()
   }
 
-  function refreshStatus () {
-    if (!connected) return Promise.reject(new Error('not connected'))
-    return helperRun('status', 30000).then(function (result) {
-      status = parseStatus(result.output)
-      renderStatus()
-      if (!HOST) {
-        showBanner('No device selected. Open a device from the list.', 'bad')
-      } else if (!status.HOME) {
-        showBanner('Could not read the Term49 home. Start term49-web from Term49 on the device.', 'bad')
-      } else if (status.PI_HELPER_VERSION !== PI_HELPER_VERSION) {
-        showBanner('The Pi helper on the device is out of date. Reconnect to upload the current version.', 'warn')
-      } else {
-        hideBanner()
-      }
-      return status
-    })
-  }
-
   function updateButtons () {
+    var s = status
     var idle = connected && !busy
     el.reconnect.disabled = false
     el.refresh.disabled = !connected || busy
-    el['pi-nodezip-btn'].disabled = !(idle && status.NODEZIP_JOB !== 'running')
+    el['pi-scripts-btn'].disabled = !(idle && s.SCRIPTS_JOB !== 'running' && s.SCRIPTS !== '1')
+    el['pi-nodezip-btn'].disabled = !(idle && s.NODEZIP_JOB !== 'running' && s.NODEZIP !== '1')
+    el['pi-nodeinst-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.NODEZIP === '1' && s.PRIVNODE !== '1')
+    el['pi-selftest-btn'].disabled = !(idle && s.PRIVNODE === '1')
     el['pi-node-btn'].disabled = !idle
-    el['pi-selftest-btn'].disabled = !(idle && status.PRIVNODE === '1')
-    el['pi-pkgpull-btn'].disabled = !(idle && artifactBase() && status.PKG_JOB !== 'running')
-    el['pi-pkginstall-btn'].disabled = !(idle && status.PKGZIP === '1' && status.SCRIPTS === '1')
-    el['pi-scripts-btn'].disabled = !(idle && status.SCRIPTS_JOB !== 'running')
-    el['pi-launcher-btn'].disabled = !(idle && status.SCRIPTS === '1')
-    el['pi-settings-btn'].disabled = !(idle && status.SCRIPTS === '1')
-    el['pi-configure-btn'].disabled = !(idle && status.SCRIPTS === '1' && status.BERRYCLOUD === '1')
-    if (!el['pi-pkgpull-btn'].disabled && !artifactBase()) {
-      el['pi-pkgpull-btn'].disabled = true
-    }
+    el['pi-pkgpull-btn'].disabled = !(idle && artifactBase() && s.PKG_JOB !== 'running' && s.SCRIPTS === '1')
+    el['pi-pkginstall-btn'].disabled = !(idle && s.PKGZIP === '1' && s.SCRIPTS === '1' && s.PACKAGE !== '1')
+    el['pi-launcher-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.LAUNCHER !== '1')
+    el['pi-settings-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.GUARD !== '1')
+    el['pi-configure-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.BERRYCLOUD === '1')
+    el['pi-cfg-btn'].disabled = !(idle && s.SCRIPTS === '1' && rowsComplete())
+    el['pi-cfg-add'].disabled = !idle
+
     if (el['artifact-note']) {
       if (!connected) el['artifact-note'].textContent = 'Actions disabled: not connected to term49-web (click Reconnect).'
       else if (busy) el['artifact-note'].textContent = 'Actions disabled: a device command is still running (wait or Reconnect).'
       else if (!artifactBase()) el['artifact-note'].textContent = 'Enter the artifact base URL to enable Pull (e.g. http://169.254.0.2:8810/artifacts).'
-      else if (status.PKG_JOB === 'running') el['artifact-note'].textContent = 'A pull is running on the device; Install enables when it finishes.'
-      else if (status.PKGZIP !== '1') el['artifact-note'].textContent = 'Install package needs pi-package.zip on the device (Pull first).'
-      else if (status.SCRIPTS !== '1') el['artifact-note'].textContent = 'Install package needs the toolkit scripts (Install toolkit scripts first).'
-      else el['artifact-note'].textContent = 'Device will pull ' + artifactBase() + '/pi-package.zip (+ .sha256).'
+      else if (s.PKG_JOB === 'running') el['artifact-note'].textContent = 'Pull in progress on the device (background).'
+      else if (s.PKGZIP !== '1') el['artifact-note'].textContent = 'Device will pull ' + artifactBase() + '/pi-package.zip (+ .sha256) over HTTP.'
+      else if (s.PACKAGE !== '1') el['artifact-note'].textContent = 'pi-package.zip is on the device \u2014 Install package is ready.'
+      else el['artifact-note'].textContent = 'Runtime package installed.'
     }
-    var cfgReady = idle && status.SCRIPTS === '1' && rowsComplete()
-    el['pi-cfg-btn'].disabled = !cfgReady
-    el['pi-cfg-add'].disabled = !idle
   }
-
-  var busyTimer = null
 
   function withBusy (label, task) {
     if (busy || !connected) return
@@ -657,6 +692,7 @@
       withBusy('Refreshing status\u2026', refreshStatus)
     })
     el['pi-nodezip-btn'].addEventListener('click', action('nodezip', 'Fetching pinned node zip (18 MB, device-side)\u2026', 60000))
+    el['pi-nodeinst-btn'].addEventListener('click', action('nodeinst', 'Installing the pinned private Node\u2026', 300000))
     el['pi-node-btn'].addEventListener('click', action('node', 'Installing node-term49 via qpkg\u2026', 60000))
     el['pi-selftest-btn'].addEventListener('click', action('selftest', 'Running node self-test\u2026'))
     el['pi-pkgpull-btn'].addEventListener('click', function () {

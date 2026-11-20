@@ -2,7 +2,7 @@
 # Pi Classic (pi coding agent) deployment manager for bb10-classic-toolkit.
 # Managed by the BB10 App Manager web UI. Installed into Term49's real home
 # and run as: sh pi-classic.sh <action>
-PI_HELPER_VERSION=1
+PI_HELPER_VERSION=2
 
 N="${NATIVE_TOOLS:-/accounts/1000/shared/misc/berrycore}"
 ROOT=/accounts/1000/shared/misc/pi-classic
@@ -115,6 +115,7 @@ do_status () {
   say "NODE_JOB=$(job_state node)"
   say "NODEZIP_JOB=$(job_state nodezip)"
   say "PKG_JOB=$(job_state pkgpull)"
+  say "SCRIPTS_JOB=$(job_state scripts)"
   [ -f "$DOCS/pi-node-term49.zip" ] && say "NODEZIP=1" || say "NODEZIP=0"
   [ -f "$DOCS/pi-package.zip" ] && say "PKGZIP=1" || say "PKGZIP=0"
   if [ -f "$ROOT/install-node.py" ] && [ -f "$ROOT/pi-launch.sh" ] && [ -f "$ROOT/compat.mjs" ]; then
@@ -223,6 +224,13 @@ for f in compat.mjs curl-fetch.mjs entry.mjs pi-launch.sh classic-guard.js AGENT
 done
 echo "Toolkit adapter scripts installed into '"$ROOT"'."
 '
+}
+
+do_nodeinst () {
+  [ -f "$ROOT/install-node.py" ] || die "toolkit scripts missing (run Install scripts first)"
+  [ -f "$DOCS/pi-node-term49.zip" ] || die "node zip missing (run Fetch pinned node zip first)"
+  say "Installing the pinned private Node (refuses an existing install)..."
+  py "$ROOT/install-node.py" || die "install-node.py failed"
 }
 
 do_selftest () {
@@ -372,6 +380,7 @@ case "${1:-status}" in
   pkgpull) do_pkgpull "${2:-}" ;;
   pkginstall) do_pkginstall ;;
   scripts) do_scripts ;;
+  nodeinst) do_nodeinst ;;
   selftest) do_selftest ;;
   settings) do_settings ;;
   launcher) do_launcher ;;
@@ -381,7 +390,7 @@ case "${1:-status}" in
   log) do_log "${2:-node}" "${3:-40}" ;;
   *)
     say "unknown action: ${1:-}"
-    say "actions: status node nodezip pkgpull pkginstall scripts selftest settings launcher configure configure-manual cfg-read log"
+    say "actions: status node nodezip nodeinst pkgpull pkginstall scripts selftest settings launcher configure configure-manual cfg-read log"
     exit 2
     ;;
 esac
