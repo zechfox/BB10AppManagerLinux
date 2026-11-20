@@ -491,12 +491,14 @@
     if (!el['pi-pkgpull-btn'].disabled && !artifactBase()) {
       el['pi-pkgpull-btn'].disabled = true
     }
-    if (el['pi-pkgpull-btn'].disabled && el['artifact-note']) {
-      if (!connected) el['artifact-note'].textContent = 'Pull disabled: not connected to term49-web (click Reconnect).'
-      else if (busy) el['artifact-note'].textContent = 'Pull disabled: a device command is still running (wait or Reconnect).'
-      else if (!artifactBase()) el['artifact-note'].textContent = 'Pull disabled: enter the artifact base URL above.'
-      else if (status.PKG_JOB === 'running') el['artifact-note'].textContent = 'Pull disabled: a pull is already running.'
-      else el['artifact-note'].textContent = 'Pull disabled: connection not ready.'
+    if (el['artifact-note']) {
+      if (!connected) el['artifact-note'].textContent = 'Actions disabled: not connected to term49-web (click Reconnect).'
+      else if (busy) el['artifact-note'].textContent = 'Actions disabled: a device command is still running (wait or Reconnect).'
+      else if (!artifactBase()) el['artifact-note'].textContent = 'Enter the artifact base URL to enable Pull.'
+      else if (status.PKG_JOB === 'running') el['artifact-note'].textContent = 'A pull is running on the device; Install enables when it finishes.'
+      else if (status.PKGZIP !== '1') el['artifact-note'].textContent = 'Install package needs pi-package.zip on the device (Pull first).'
+      else if (status.SCRIPTS !== '1') el['artifact-note'].textContent = 'Install package needs the toolkit scripts (Install toolkit scripts first).'
+      else el['artifact-note'].textContent = 'Device will pull ' + artifactBase() + '/pi-package.zip (+ .sha256).'
     }
     var cfgReady = idle && status.SCRIPTS === '1' && rowsComplete()
     el['pi-cfg-btn'].disabled = !cfgReady
