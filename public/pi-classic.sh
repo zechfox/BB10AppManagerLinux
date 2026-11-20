@@ -2,7 +2,7 @@
 # Pi Classic (pi coding agent) deployment manager for bb10-classic-toolkit.
 # Managed by the BB10 App Manager web UI. Installed into Term49's real home
 # and run as: sh pi-classic.sh <action>
-PI_HELPER_VERSION=2
+PI_HELPER_VERSION=3
 
 N="${NATIVE_TOOLS:-/accounts/1000/shared/misc/berrycore}"
 ROOT=/accounts/1000/shared/misc/pi-classic
@@ -115,7 +115,15 @@ do_status () {
   say "NODE_JOB=$(job_state node)"
   say "NODEZIP_JOB=$(job_state nodezip)"
   say "PKG_JOB=$(job_state pkgpull)"
+  say "PKGINST_JOB=$(job_state pkginst)"
   say "SCRIPTS_JOB=$(job_state scripts)"
+  ASHA=""
+  [ -f "$DOCS/pi-package.zip.sha256" ] && ASHA=$(cut -c1-16 "$DOCS/pi-package.zip.sha256" 2>/dev/null)
+  ISHA=""
+  [ -f "$ROOT/package/.install-sha" ] && ISHA=$(cut -c1-16 "$ROOT/package/.install-sha" 2>/dev/null)
+  say "PKGSHA=$ASHA"
+  say "INSTSHA=$ISHA"
+  if [ -n "$ASHA" ] && [ -n "$ISHA" ] && [ "$ASHA" = "$ISHA" ]; then say "PKG_MATCH=1"; else say "PKG_MATCH=0"; fi
   [ -f "$DOCS/pi-node-term49.zip" ] && say "NODEZIP=1" || say "NODEZIP=0"
   [ -f "$DOCS/pi-package.zip" ] && say "PKGZIP=1" || say "PKGZIP=0"
   if [ -f "$ROOT/install-node.py" ] && [ -f "$ROOT/pi-launch.sh" ] && [ -f "$ROOT/compat.mjs" ]; then
@@ -197,8 +205,27 @@ echo "pi-package.zip ready."
 do_pkginstall () {
   [ -f "$DOCS/pi-package.zip" ] || die "pi-package.zip missing (run Pull package first)"
   [ -f "$ROOT/install-package.py" ] || die "toolkit scripts missing (run Install scripts first)"
-  say "Installing package tree (refuses to overwrite an existing one)..."
-  py "$ROOT/install-package.py" || die "install-package.py failed"
+  state=$(job_state pkginst)
+  [ "$state" = "running" ] && die "package install already running"
+  FORCE=${1:-}
+  SHA=$(find_tool sha256sum || true)
+  start_job pkginst '
+set -e
+ROOT='"$ROOT"'
+DOCS='"$DOCS"'
+SHA='"$SHA"'
+FORCE='"$FORCE"'
+if [ "$FORCE" = "force" ] && [ -d "$ROOT/package" ]; then
+  rm -rf "$ROOT/package"
+  echo "removed the existing package tree"
+fi
+LD_LIBRARY_PATH=/base/lib:/base/usr/lib /base/usr/bin/python3.2 "$ROOT/install-package.py"
+if [ -n "$SHA" ]; then
+  "$SHA" "$DOCS/pi-package.zip" | cut -d" " -f1 > "$ROOT/package/.install-sha"
+  echo "recorded install sha: $(cut -c1-16 "$ROOT/package/.install-sha")"
+fi
+echo "package tree installed."
+'
 }
 
 do_scripts () {
@@ -363,6 +390,7 @@ do_log () {
     node) F="$WORK/node.log" ;;
     nodezip) F="$WORK/nodezip.log" ;;
     pkgpull) F="$WORK/pkgpull.log" ;;
+    pkginst) F="$WORK/pkginst.log" ;;
     scripts) F="$WORK/scripts.log" ;;
     *) die "unknown log: $name" ;;
   esac

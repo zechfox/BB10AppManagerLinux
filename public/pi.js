@@ -14,7 +14,7 @@
   var helperUploaded = false
   var helperPromise = null
   var existingLoaded = false
-  var PI_HELPER_VERSION = '2'
+  var PI_HELPER_VERSION = '3'
   var busyTimer = null
   var HELPER_PREFIX = 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; PD="$D/.pihelper"; '
 
@@ -133,6 +133,10 @@
         .then(refreshStatus)
         .catch(function (err) {
           log('Pi pane setup failed: ' + err.message)
+          if (String(err.message || '').indexOf('Timed out') >= 0 ||
+              String(err.message || '').indexOf('not connected') >= 0) {
+            showBanner('The term49-web shell is not responding. Restart term49-web inside Term49, then click Reconnect.', 'bad')
+          }
         })
     }
 
@@ -382,7 +386,9 @@
   function jobsBusy () {
     return status.NODE_JOB === 'running' ||
       status.NODEZIP_JOB === 'running' ||
-      status.PKG_JOB === 'running'
+      status.PKG_JOB === 'running' ||
+      status.PKGINST_JOB === 'running' ||
+      status.SCRIPTS_JOB === 'running'
   }
 
   function stopPolling () {
@@ -412,7 +418,7 @@
     { key: 'scripts', done: function (s) { return s.SCRIPTS === '1' }, running: function (s) { return s.SCRIPTS_JOB === 'running' }, fail: function (s) { return failedJob(s.SCRIPTS_JOB) } },
     { key: 'nodezip', done: function (s) { return s.NODEZIP === '1' }, running: function (s) { return s.NODEZIP_JOB === 'running' }, fail: function (s) { return failedJob(s.NODEZIP_JOB) } },
     { key: 'nodeinst', done: function (s) { return s.PRIVNODE === '1' }, running: function () { return false }, fail: function () { return false } },
-    { key: 'package', done: function (s) { return s.PACKAGE === '1' }, running: function (s) { return s.PKG_JOB === 'running' }, fail: function (s) { return failedJob(s.PKG_JOB) } },
+    { key: 'package', done: function (s) { return s.PACKAGE === '1' }, running: function (s) { return s.PKG_JOB === 'running' || s.PKGINST_JOB === 'running' }, fail: function (s) { return failedJob(s.PKG_JOB) || failedJob(s.PKGINST_JOB) } },
     { key: 'launcher', done: function (s) { return s.LAUNCHER === '1' }, running: function () { return false }, fail: function () { return false } },
     { key: 'guard', done: function (s) { return s.GUARD === '1' }, running: function () { return false }, fail: function () { return false } },
     { key: 'creds', done: function (s) { return s.CREDS === '1' }, running: function () { return false }, fail: function () { return false } }
@@ -452,12 +458,19 @@
       } else {
         pill.textContent = 'pending'
       }
-      if (step.key === 'package' && !done && !running) {
+      if (step.key === 'package') {
         var pulled = s.PKGZIP === '1'
         var scripts = s.SCRIPTS === '1'
-        if (!scripts) hint.textContent = 'Needs the toolkit scripts first (step 1).'
+        if (running) {
+          hint.textContent = s.PKGINST_JOB === 'running'
+            ? 'Installing the package tree on the device (several minutes, background job)\u2026'
+            : 'Pulling the package (background job)\u2026'
+        } else if (!scripts) hint.textContent = 'Needs the toolkit scripts first (step 1).'
         else if (!pulled) hint.textContent = 'Pull the package from this host, then install it.'
-        else hint.textContent = 'pi-package.zip is on the device \u2014 click Install package.'
+        else if (s.PACKAGE !== '1') hint.textContent = 'pi-package.zip is on the device \u2014 click Install package.'
+        else if (s.PKG_MATCH === '1') hint.textContent = 'Installed from ' + (s.INSTSHA || 'unknown') + ' (matches the zip on device).'
+        else hint.textContent = 'Installed tree is from ' + (s.INSTSHA || 'an untracked build') +
+          ', but the zip on the device is ' + (s.PKGSHA || 'unknown') + '. Click Reinstall package.'
       }
     })
     var pct = Math.round(doneCount / STEPS.length * 100)
@@ -492,11 +505,12 @@
 
   function renderStatus () {
     var s = status
-    var jobs = jobsBusy() || s.SCRIPTS_JOB === 'running'
+    var jobs = jobsBusy()
     var running = []
     if (s.NODE_JOB === 'running') running.push('node-term49 install')
     if (s.NODEZIP_JOB === 'running') running.push('node zip fetch')
     if (s.PKG_JOB === 'running') running.push('package pull')
+    if (s.PKGINST_JOB === 'running') running.push('package install')
     if (s.SCRIPTS_JOB === 'running') running.push('toolkit scripts')
     el['conn-state'].textContent = jobs ? ('Working: ' + running.join(', ')) : 'Connected'
     el['conn-state'].className = 'badge' + (jobs ? ' warn' : ' ok')
@@ -526,7 +540,9 @@
     el['pi-selftest-btn'].disabled = !(idle && s.PRIVNODE === '1')
     el['pi-node-btn'].disabled = !idle
     el['pi-pkgpull-btn'].disabled = !(idle && artifactBase() && s.PKG_JOB !== 'running' && s.SCRIPTS === '1')
-    el['pi-pkginstall-btn'].disabled = !(idle && s.PKGZIP === '1' && s.SCRIPTS === '1' && s.PACKAGE !== '1')
+    el['pi-pkginstall-btn'].disabled = !(idle && s.PKGZIP === '1' && s.SCRIPTS === '1' &&
+      (s.PACKAGE !== '1' || s.PKG_MATCH !== '1'))
+    el['pi-pkginstall-btn'].textContent = (s.PACKAGE === '1' ? 'Reinstall package' : 'Install package')
     el['pi-launcher-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.LAUNCHER !== '1')
     el['pi-settings-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.GUARD !== '1')
     el['pi-configure-btn'].disabled = !(idle && s.SCRIPTS === '1' && s.BERRYCLOUD === '1')
@@ -722,8 +738,16 @@
       }
       action('pkgpull ' + base, 'Pulling pi-package.zip from ' + base + '\u2026', 60000)()
     })
-    el['pi-pkginstall-btn'].addEventListener('click', action('pkginstall', 'Installing pi package tree\u2026', 300000,
-      'Install the pi package tree into pi-classic/package? This refuses to overwrite an existing install.'))
+    el['pi-pkginstall-btn'].addEventListener('click', function () {
+      var reinstall = status.PACKAGE === '1'
+      if (typeof window.confirm === 'function' &&
+        !window.confirm(reinstall
+          ? 'Replace the existing package tree? The current pi-classic/package directory is deleted first, then re-extracted from the zip on the device.'
+          : 'Install the pi package tree into pi-classic/package? An existing install is refused by the toolkit installer.')) {
+        return
+      }
+      action('pkginstall' + (reinstall ? ' force' : ''), 'Starting package install on the device\u2026', 60000)()
+    })
     el['pi-scripts-btn'].addEventListener('click', action('scripts', 'Fetching toolkit adapter scripts\u2026', 60000))
     el['pi-launcher-btn'].addEventListener('click', action('launcher', 'Installing the pi launcher\u2026', 60000,
       'Install the pi command into berrycore/bin/pi? An unrelated existing entry is refused by the toolkit.'))
