@@ -471,6 +471,24 @@
     mark(el['st-creds'], s.CREDS === '1', s.CREDS === '1' ? 'configured' : 'not configured')
   }
 
+  function refreshStatus () {
+    if (!connected) return Promise.reject(new Error('not connected'))
+    return helperRun('status', 30000).then(function (result) {
+      status = parseStatus(result.output)
+      renderStatus()
+      if (!HOST) {
+        showBanner('No device selected. Open a device from the list.', 'bad')
+      } else if (!status.HOME) {
+        showBanner('Could not read the Term49 home. Start term49-web from Term49 on the device.', 'bad')
+      } else if (status.PI_HELPER_VERSION !== PI_HELPER_VERSION) {
+        showBanner('The Pi helper on the device is out of date. Reconnect to upload the current version.', 'warn')
+      } else {
+        hideBanner()
+      }
+      return status
+    })
+  }
+
   function renderStatus () {
     var s = status
     var jobs = jobsBusy() || s.SCRIPTS_JOB === 'running'
