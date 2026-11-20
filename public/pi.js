@@ -403,22 +403,6 @@
     return String(el['pi-artifact-url'].value || '').trim().replace(/\/+$/, '')
   }
 
-  function updateArtifactNote () {
-    if (!el['artifact-note']) return
-    var host = location.hostname
-    var loopback = !host || host === '127.0.0.1' || host === 'localhost' || host === '::1'
-    var base = artifactBase()
-    if (loopback) {
-      el['artifact-note'].textContent = 'The device cannot pull from ' + (host || 'this host') +
-        ' (loopback). Enter the USB/Wi-Fi address of this machine, e.g. http://169.254.x.x:8810/artifacts,' +
-        ' and run the app with LISTEN_HOST=0.0.0.0.'
-    } else if (!base) {
-      el['artifact-note'].textContent = 'Suggested base: http://' + host + ':8810/artifacts'
-    } else {
-      el['artifact-note'].textContent = 'Device will pull ' + base + '/pi-package.zip (+ .sha256).'
-    }
-  }
-
   function renderStatus () {
     mark(el['st-home'], status.HOME, status.HOME || '\u2014')
     mark(el['st-root'], status.ROOT, status.ROOT || '\u2014')
@@ -451,7 +435,6 @@
     loadExistingConfig().catch(function () { })
 
     updateButtons()
-    updateArtifactNote()
 
     if (jobs) startPolling()
     else stopPolling()
@@ -494,7 +477,7 @@
     if (el['artifact-note']) {
       if (!connected) el['artifact-note'].textContent = 'Actions disabled: not connected to term49-web (click Reconnect).'
       else if (busy) el['artifact-note'].textContent = 'Actions disabled: a device command is still running (wait or Reconnect).'
-      else if (!artifactBase()) el['artifact-note'].textContent = 'Enter the artifact base URL to enable Pull.'
+      else if (!artifactBase()) el['artifact-note'].textContent = 'Enter the artifact base URL to enable Pull (e.g. http://169.254.0.2:8810/artifacts).'
       else if (status.PKG_JOB === 'running') el['artifact-note'].textContent = 'A pull is running on the device; Install enables when it finishes.'
       else if (status.PKGZIP !== '1') el['artifact-note'].textContent = 'Install package needs pi-package.zip on the device (Pull first).'
       else if (status.SCRIPTS !== '1') el['artifact-note'].textContent = 'Install package needs the toolkit scripts (Install toolkit scripts first).'
@@ -701,7 +684,6 @@
     el['clear-log'].addEventListener('click', function () { el.log.textContent = '' })
     el['pi-artifact-url'].addEventListener('input', function () {
       writeStored('pi-artifact-url', el['pi-artifact-url'].value)
-      updateArtifactNote()
       updateButtons()
     })
 
