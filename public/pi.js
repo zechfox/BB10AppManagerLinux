@@ -15,6 +15,7 @@
   var helperPromise = null
   var existingLoaded = false
   var PI_HELPER_VERSION = '2'
+  var busyTimer = null
   var HELPER_PREFIX = 'D="${SANDBOX:+$SANDBOX/data}"; [ -n "$D" ] || D="$HOME"; PD="$D/.pihelper"; '
 
   function normalizeHost (value) {
