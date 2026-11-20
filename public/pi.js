@@ -486,23 +486,45 @@
     el['pi-launcher-btn'].disabled = !(idle && status.SCRIPTS === '1')
     el['pi-settings-btn'].disabled = !(idle && status.SCRIPTS === '1')
     el['pi-configure-btn'].disabled = !(idle && status.SCRIPTS === '1' && status.BERRYCLOUD === '1')
+    if (!el['pi-pkgpull-btn'].disabled && !artifactBase()) {
+      el['pi-pkgpull-btn'].disabled = true
+    }
+    if (el['pi-pkgpull-btn'].disabled && el['artifact-note']) {
+      if (!connected) el['artifact-note'].textContent = 'Pull disabled: not connected to term49-web (click Reconnect).'
+      else if (busy) el['artifact-note'].textContent = 'Pull disabled: a device command is still running (wait or Reconnect).'
+      else if (!artifactBase()) el['artifact-note'].textContent = 'Pull disabled: enter the artifact base URL above.'
+      else if (status.PKG_JOB === 'running') el['artifact-note'].textContent = 'Pull disabled: a pull is already running.'
+      else el['artifact-note'].textContent = 'Pull disabled: connection not ready.'
+    }
     var cfgReady = idle && status.SCRIPTS === '1' && rowsComplete()
     el['pi-cfg-btn'].disabled = !cfgReady
     el['pi-cfg-add'].disabled = !idle
   }
 
+  var busyTimer = null
+
   function withBusy (label, task) {
     if (busy || !connected) return
     setBusy(true, label)
+    if (busyTimer) clearTimeout(busyTimer)
+    busyTimer = setTimeout(function () {
+      if (!busy) return
+      log('A device command did not finish in time; clearing the busy state. Click Reconnect if the shell stays unresponsive.')
+      setBusy(false)
+    }, 90000)
     Promise.resolve()
       .then(task)
       .catch(function (err) {
         log('Error: ' + err.message)
+        if (String(err.message || '').indexOf('Timed out waiting for the device shell') >= 0) {
+          showBanner('The term49-web shell is not responding. Click Reconnect (in the connection card above), then retry.', 'warn')
+        }
       })
       .then(function () {
         return refreshStatus().catch(function () { })
       })
       .then(function () {
+        if (busyTimer) { clearTimeout(busyTimer); busyTimer = null }
         setBusy(false)
       })
   }
